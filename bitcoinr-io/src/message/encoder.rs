@@ -1,18 +1,16 @@
-use bytes::{BytesMut, BufMut, BigEndian};
+use bytes::{BytesMut, Bytes, BufMut, BigEndian};
 
 use sha2::{Sha256, Digest};
 
 use super::{SIZE_OF_HEADER, Message, Command, EMPTY_STRING_CHECKSUM};
-use super::get_addr;
+use super::command::{get_addr, addr};
 use error::*;
 
 
 pub fn encode_message(msg: Message, dst: &mut BytesMut) -> Result<()> {
 
     // Get each command name and payload bytes.
-    let (command_name, payload) = match msg.command {
-        Command::GetAddr => get_addr::command_name_and_payload(),
-    };
+    let (command_name, payload) = get_command_name_and_payload(msg.command)?;
 
     let payload_size = payload.len();
 
@@ -35,4 +33,13 @@ pub fn encode_message(msg: Message, dst: &mut BytesMut) -> Result<()> {
     dst.put(payload);
 
     Ok(())
+}
+
+
+
+fn get_command_name_and_payload(command: Command) -> Result<([u8; 12], Bytes)> {
+    match command {
+        Command::GetAddr => get_addr::command_name_and_payload(),
+        Command::Addr(addr) => addr::command_name_and_payload(addr),
+    }
 }

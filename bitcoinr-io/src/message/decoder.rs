@@ -4,7 +4,7 @@ use sha2::{Sha256, Digest};
 
 use std::io::{Cursor, SeekFrom, Seek};
 
-use super::get_addr;
+use super::command::{get_addr, addr};
 use message::{Command, Message, SIZE_OF_HEADER, EMPTY_STRING_CHECKSUM};
 use net::NetworkType;
 use error::*;
@@ -103,7 +103,9 @@ fn check_checksum(checksum: &Bytes, payload: &Bytes) -> Result<()> {
 
 fn read_command(command_name: [u8; 12], payload: Bytes) -> Result<Command> {
     match command_name {
-        get_addr::COMMAND_NAME => panic!("You never receive getaddr message!!"),
-        other => panic!("It could not be configured as command name\n    {:?}", other),
+        addr::COMMAND_NAME => Ok(Command::Addr(addr::decode(payload)?)),
+        get_addr::COMMAND_NAME => Ok(Command::GetAddr),
+
+        other => Err(ErrorKind::InvalidCommandName(other).into()),
     }
 }

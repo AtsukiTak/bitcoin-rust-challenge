@@ -1,11 +1,12 @@
 mod decoder;
 mod encoder;
-mod get_addr;
+pub(self) mod command;
 
 pub use self::decoder::decode_message;
 pub use self::encoder::encode_message;
 
 use net::NetworkType;
+use self::command::addr;
 
 
 pub const SIZE_OF_HEADER: usize = 24;
@@ -22,5 +23,5 @@ pub struct Message {
 
 pub enum Command {
     GetAddr,
-    // Addr(Address),
+    Addr(addr::AddrPayload),
 }
