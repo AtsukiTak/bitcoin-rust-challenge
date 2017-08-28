@@ -10,6 +10,8 @@ use net::NetworkType;
 
 pub const SIZE_OF_HEADER: usize = 24;
 
+pub const EMPTY_STRING_CHECKSUM: [u8; 4] = [0x5d, 0xf6, 0xe0, 0xe2];
+
 
 /// `Message` represents a message which contains `network_type` and `command` field.
 pub struct Message {
@@ -21,12 +23,4 @@ pub struct Message {
 pub enum Command {
     GetAddr,
     // Addr(Address),
-}
-
-
-pub(self) struct Header {
-    pub start_string: [u8; 4],
-    pub command_name: [u8; 12],
-    pub payload_size: u32,
-    pub checksum: [u8; 4],
 }

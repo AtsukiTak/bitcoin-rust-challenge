@@ -8,5 +8,9 @@ error_chain! {
             description("Invalid start string.")
             display("{:?} is not a valid start string.", bytes)
         }
+        ChecksumDoesNotAccord {
+            description("Checksum does not accrod.")
+            display("Checksum does not accrod.")
+        }
     }
 }
