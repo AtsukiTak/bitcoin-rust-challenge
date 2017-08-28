@@ -1,10 +1,2 @@
-[package]
-name = "bitcoinr"
-version = "0.0.0"
-authors = ["AtsukiTak <takatomgoo@gmail.com>"]
-description = "Bitcoin library for Rust"
-homepage = "https://github.com/AtsukiTak/bitcoinr.git"
-repository = "https://github.com/AtsukiTak/bitcoinr.git"
-license = "MIT/Apache-2.0"
-
-[dependencies]
+[workspace]
+members = ["bitcoinr-io"]
