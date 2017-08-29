@@ -6,6 +6,7 @@ pub const TESTNET3_START_STRING: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
 pub const REGTEST_START_STRING: [u8; 4] = [0xfa, 0xbf, 0xb5, 0xda];
 
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkType {
     Main,
     Test,
@@ -27,7 +28,7 @@ impl NetworkType {
             MAINNET_START_STRING => Ok(NetworkType::Main),
             TESTNET3_START_STRING => Ok(NetworkType::Test),
             REGTEST_START_STRING => Ok(NetworkType::RegTest),
-            other => Err(ErrorKind::InvalidStartString(other).into())
+            other => Err(ErrorKind::InvalidStartString(other).into()),
         }
     }
 }

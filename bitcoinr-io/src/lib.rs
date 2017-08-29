@@ -14,3 +14,7 @@ pub mod message;
 pub mod net;
 
 pub mod error;
+
+
+pub use message::{MsgCodec, Message, Command};
+pub use net::NetworkType;

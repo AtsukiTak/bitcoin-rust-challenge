@@ -7,6 +7,7 @@ use error::*;
 pub const COMMAND_NAME: [u8; 12] = [0x61, 0x64, 0x64, 0x72, 0, 0, 0, 0, 0, 0, 0, 0];
 
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AddrPayload {
     hoge: usize,
 }
@@ -17,6 +18,6 @@ pub fn decode(payload: Bytes) -> Result<AddrPayload> {
 }
 
 
-pub fn command_name_and_payload(addr: AddrPayload) -> Result<([u8; 12], Bytes)> {
+pub fn encode(addr: AddrPayload) -> Result<Bytes> {
     panic!()
 }

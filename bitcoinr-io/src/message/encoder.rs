@@ -9,6 +9,8 @@ use error::*;
 
 pub fn encode_message(msg: Message, dst: &mut BytesMut) -> Result<()> {
 
+    println!("Encode msg : {:?}", msg);
+
     // Get each command name and payload bytes.
     let (command_name, payload) = get_command_name_and_payload(msg.command)?;
 
@@ -32,6 +34,8 @@ pub fn encode_message(msg: Message, dst: &mut BytesMut) -> Result<()> {
     dst.reserve(payload_size);
     dst.put(payload);
 
+    println!("Finish encodeing : {:?}", dst);
+
     Ok(())
 }
 
@@ -39,7 +43,7 @@ pub fn encode_message(msg: Message, dst: &mut BytesMut) -> Result<()> {
 
 fn get_command_name_and_payload(command: Command) -> Result<([u8; 12], Bytes)> {
     match command {
-        Command::GetAddr => get_addr::command_name_and_payload(),
-        Command::Addr(addr) => addr::command_name_and_payload(addr),
+        Command::GetAddr => Ok((get_addr::COMMAND_NAME, get_addr::encode()?)),
+        Command::Addr(addr) => Ok((addr::COMMAND_NAME, addr::encode(addr)?)),
     }
 }

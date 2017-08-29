@@ -13,6 +13,8 @@ use error::*;
 
 pub fn decode_message(src: &mut BytesMut) -> Result<Option<Message>> {
 
+    println!("Decode bytes : {:?}", src);
+
     if let Some(bytes) = extract_frame_bytes(src)? {
 
         let net_type = read_network_type(&bytes.slice(0, 4))?;
