@@ -3,7 +3,7 @@ use bytes::{BytesMut, Bytes, BufMut, BigEndian};
 use sha2::{Sha256, Digest};
 
 use super::{SIZE_OF_HEADER, Message, Command, EMPTY_STRING_CHECKSUM};
-use super::command::{get_addr, addr};
+use super::command::{get_addr, addr, version};
 use error::*;
 
 
@@ -43,6 +43,7 @@ pub fn encode_message(msg: Message, dst: &mut BytesMut) -> Result<()> {
 
 fn get_command_name_and_payload(command: Command) -> Result<([u8; 12], Bytes)> {
     match command {
+        Command::Version(version) => Ok((version::COMMAND_NAME, version::encode(version)?)),
         Command::GetAddr => Ok((get_addr::COMMAND_NAME, get_addr::encode()?)),
         Command::Addr(addr) => Ok((addr::COMMAND_NAME, addr::encode(addr)?)),
     }

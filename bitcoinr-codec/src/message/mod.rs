@@ -9,6 +9,7 @@ use tokio_io::codec::{Decoder, Encoder};
 
 use bytes::BytesMut;
 
+use self::command::{version, addr};
 use net::NetworkType;
 use error::*;
 
@@ -28,8 +29,9 @@ pub struct Message {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
+    Version(version::VersionPayload),
     GetAddr,
-    Addr(command::addr::AddrPayload),
+    Addr(addr::AddrPayload),
 }
 
 
