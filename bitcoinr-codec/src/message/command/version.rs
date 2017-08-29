@@ -1,6 +1,6 @@
 use bytes::{Bytes, BytesMut, BigEndian, BufMut};
 
-use std::net::IpAddr;
+use std::net::SocketAddr;
 
 use error::*;
 
@@ -10,7 +10,8 @@ pub const COMMAND_NAME: [u8; 12] = [b'v', b'e', b'r', b's', b'i', b'o', b'n', 0,
 
 const MAX_SIZE_OF_VERSION_PAYLOAD: usize = 310;
 
-const UNKNOWN_IP_ADDR: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 127, 0, 0, 1];
+pub const UNKNOWN_IP_ADDR: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 127, 0, 0, 1];
+
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,28 +38,28 @@ pub struct VersionPayload {
 
     // Added in protocol version 106.
     //
+    // ## Ip address
     // The IPv6 address of the receiving node as perceived by the transmitting node in big endian
     // byte order. IPv4 addresses can be provided as IPv4-mapped IPv6 addresses. Bitcoin Core will
     // attempt to provide accurate information. BitcoinJ will, by default, always return
     // ::ffff:127.0.0.1
-    addr_recv_ip_address: Option<IpAddr>,
-
-    // Added in protocol version 106.
     //
+    // ## Port number
     // The port number of the receiving node as perceived by the transmitting node in big endian
     // byte order
-    addr_recv_port: u16,
+    addr_recv: SocketAddr,
 
     // The services supported by the transmitting node. Should be identical to the ‘services’
     // field above.
     addr_trans_services: u64,
 
+    // ## Ip address
     // The IPv6 address of the transmitting node in big endian byte order. IPv4 addresses can be
     // provided as IPv4-mapped IPv6 addresses. Set to ::ffff:127.0.0.1 if unknown.
-    addr_trans_ip_address: Option<IpAddr>,
-
+    //
+    // ## Port number
     // The port number of the transmitting node in big endian byte order.
-    addr_trans_port: u16,
+    addr_trans: SocketAddr,
 
     // A random nonce which can help a node detect a connection to itself. If the nonce is 0, the
     // nonce field is ignored. If the nonce is anything else, a node should terminate the
@@ -101,12 +102,10 @@ pub fn encode(version: VersionPayload) -> Result<Bytes> {
     buf.put_i64::<BigEndian>(version.timestamp);
 
     buf.put_u64::<BigEndian>(version.addr_recv_services);
-    encode_ip_addr(version.addr_recv_ip_address, &mut buf);
-    buf.put_u16::<BigEndian>(version.addr_recv_port);
+    encode_addr(version.addr_recv, &mut buf);
 
     buf.put_u64::<BigEndian>(version.addr_trans_services);
-    encode_ip_addr(version.addr_trans_ip_address, &mut buf);
-    buf.put_u16::<BigEndian>(version.addr_trans_port);
+    encode_addr(version.addr_trans, &mut buf);
 
     buf.put_u64::<BigEndian>(version.nonce);
 
@@ -126,10 +125,15 @@ pub fn encode(version: VersionPayload) -> Result<Bytes> {
 }
 
 
-fn encode_ip_addr(addr: Option<IpAddr>, dst: &mut BytesMut) {
+fn encode_addr(addr: SocketAddr, dst: &mut BytesMut) {
     match addr {
-        Some(IpAddr::V4(ipv4)) => dst.put_slice(&ipv4.to_ipv6_mapped().octets()),
-        Some(IpAddr::V6(ipv6)) => dst.put_slice(&ipv6.octets()),
-        None => dst.put_slice(&UNKNOWN_IP_ADDR),
+        SocketAddr::V4(ipv4) => {
+            dst.put_slice(&ipv4.ip().to_ipv6_mapped().octets());
+            dst.put_u16::<BigEndian>(ipv4.port());
+        }
+        SocketAddr::V6(ipv6) => {
+            dst.put_slice(&ipv6.ip().octets());
+            dst.put_u16::<BigEndian>(ipv6.port());
+        }
     }
 }
