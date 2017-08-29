@@ -1,4 +1,4 @@
-extern crate bitcoinr_io;
+extern crate bitcoinr_codec;
 extern crate tokio_core;
 extern crate tokio_io;
 extern crate futures;
@@ -9,8 +9,8 @@ use tokio_io::AsyncRead;
 
 use futures::{Future, Sink, Stream};
 
-use bitcoinr_io::{MsgCodec, Message, NetworkType, Command};
-use bitcoinr_io::error::*;
+use bitcoinr_codec::{MsgCodec, Message, NetworkType, Command};
+use bitcoinr_codec::error::*;
 
 
 pub fn main() {

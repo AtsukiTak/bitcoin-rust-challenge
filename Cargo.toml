@@ -1,2 +1,2 @@
 [workspace]
-members = ["bitcoinr-io"]
+members = ["bitcoinr-codec"]
