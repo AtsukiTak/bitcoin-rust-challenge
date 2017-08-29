@@ -1,6 +1,6 @@
 mod decoder;
 mod encoder;
-pub(self) mod command;
+pub mod command;
 
 pub use self::decoder::decode_message;
 pub use self::encoder::encode_message;

@@ -11,6 +11,7 @@ extern crate futures;
 extern crate tokio_core;
 extern crate tokio_io;
 extern crate bytes;
+extern crate chrono;
 extern crate sha2;
 
 #[macro_use]
