@@ -5,6 +5,7 @@ authors = ["AtsukiTak <takatomgoo@gmail.com>"]
 
 [dependencies]
 bitcoinrs_proto = { path = "proto" }
+bitcoinrs_crypto = { path = "crypto" }
 
 [workspace]
-members = ["proto"]
+members = ["proto", "crypto"]
