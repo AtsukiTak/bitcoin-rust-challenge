@@ -1,0 +1,10 @@
+[package]
+name = "bitcoinrs"
+version = "0.1.0"
+authors = ["AtsukiTak <takatomgoo@gmail.com>"]
+
+[dependencies]
+bitcoinrs_proto = { path = "proto" }
+
+[workspace]
+members = ["proto"]

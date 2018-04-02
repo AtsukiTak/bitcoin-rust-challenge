@@ -1,0 +1,14 @@
+[package]
+name = "bitcoinrs_proto"
+version = "0.1.0"
+authors = ["AtsukiTak <takatomgoo@gmail.com>"]
+
+[dependencies]
+
+[[example]]
+name = "send_msg"
+path = "examples/send_msg.rs"
+
+[lib]
+name = "bitcoinrs_proto"
+path = "src/lib.rs"
