@@ -1,3 +1,5 @@
+extern crate bitcoinrs_bytes;
+
 pub mod commons;
 pub mod msg;
 

@@ -4,3 +4,8 @@ version = "0.1.0"
 authors = ["AtsukiTak <takatomgoo@gmail.com>"]
 
 [dependencies]
+bitcoinrs_bytes = { path = "../bitcoinrs_bytes" }
+
+[dev-dependencies]
+openssl = "0.10"
+rand = "0.4"

@@ -1,0 +1,11 @@
+[package]
+name = "bitcoinrs_proto"
+version = "0.1.0"
+authors = ["AtsukiTak <takatomgoo@gmail.com>"]
+
+[dependencies]
+bitcoinrs_bytes = { path = "../bitcoinrs_bytes" }
+
+[[example]]
+name = "send_msg"
+path = "examples/send_msg.rs"
