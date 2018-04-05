@@ -38,6 +38,15 @@ pub struct NetAddrForVersionMsg {
     addr: SocketAddr,
 }
 
+impl NetAddrForVersionMsg {
+    pub fn new(services: u64, addr: SocketAddr) -> NetAddrForVersionMsg {
+        NetAddrForVersionMsg {
+            services: services,
+            addr: addr,
+        }
+    }
+}
+
 impl Bytes for NetAddrForVersionMsg {
     fn length(&self) -> usize {
         26
