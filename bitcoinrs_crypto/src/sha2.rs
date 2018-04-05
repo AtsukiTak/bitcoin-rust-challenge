@@ -220,21 +220,3 @@ fn u32_to_bytes(n: u32) -> [u8; 4] {
 
     unsafe { transmute::<u32, [u8; 4]>(n.to_be()) }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn padding_must_be_multiple_of_512() {
-        let msg = "abcde";
-        assert_padded_len(msg.as_bytes());
-
-        let big_bytes: [u8; 10000] = [0; 10000];
-        assert_padded_len(&big_bytes);
-    }
-
-    fn assert_padded_len(msg: &[u8]) {
-        assert_eq!(get_padded_vec(msg).len() % 64, 0);
-    }
-}

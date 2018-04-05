@@ -5,6 +5,7 @@ authors = ["AtsukiTak <takatomgoo@gmail.com>"]
 
 [dependencies]
 bitcoinrs_bytes = { path = "../bitcoinrs_bytes" }
+bitcoinrs_crypto = { path = "../bitcoinrs_crypto" }
 
 [[example]]
 name = "send_msg"

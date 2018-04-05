@@ -1,31 +1,55 @@
 use bitcoinrs_bytes::{Bytes, VarStr};
+use bitcoinrs_crypto::sha256;
 
 use commons::*;
 use NetworkType;
 
-pub trait MsgPayload: Bytes {
-    const COMMAND: &'static str;
+pub struct Msg<M: MsgPayload> {
+    magic: u32, // little endian
+    payload: M,
+}
 
-    fn to_msg_bytes(&self, network: NetworkType) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(21 + self.length());
+impl<M: MsgPayload> Bytes for Msg<M> {
+    fn length(&self) -> usize {
+        24 + self.payload.length()
+    }
 
-        // Write magic_number
-        network.magic_num().to_le().write_to(&mut buf);
+    fn write_to(&self, buf: &mut Vec<u8>) {
+        // Write magic valud.
+        self.magic.write_to(buf);
 
-        // Write command_string
-        write_command(Self::COMMAND, &mut buf);
+        // Write NULL padded command string
+        write_command(M::COMMAND, buf);
 
-        // Write payload_size
-        (self.length() as u32).to_le().write_to(&mut buf);
+        // Write length of payload in bytes
+        (self.payload.length() as u32).to_le().write_to(buf);
 
-        // Write checksum
-        // TODO
+        // Write temporary checksum
+        buf.extend_from_slice(&[0; 4][..]);
 
         // Write payload
-        self.write_to(&mut buf);
+        self.payload.write_to(buf);
 
-        buf
+        // Compute and write checksum
+        const START_PAYLOAD: usize = 24;
+        const START_CHECKSUM: usize = 20;
+        let hash = sha256(&sha256(&buf.as_slice()[START_PAYLOAD..]));
+        buf.as_mut_slice()[START_CHECKSUM..START_CHECKSUM + 4].copy_from_slice(&hash[0..4]);
     }
+}
+
+impl<M: MsgPayload> Msg<M> {
+    pub fn new(network: NetworkType, payload: M) -> Msg<M> {
+        Msg {
+            magic: network.magic_num().to_le(),
+            payload: payload,
+        }
+    }
+}
+
+/// Marker trait for Bitcoin p2p message payload.
+pub trait MsgPayload: Bytes {
+    const COMMAND: &'static str;
 }
 
 fn write_command(command: &str, buf: &mut Vec<u8>) {
