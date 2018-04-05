@@ -1,11 +1,14 @@
 use bitcoinrs_bytes::{Bytes, VarStr};
 
-use commons::NetAddrForVersionMsg;
+use commons::{NetAddrForVersionMsg, Services};
 use super::MsgPayload;
+
+const DEFAULT_VERSION: i32 = 70015;
+const DEFAULT_SERVICES: Services = Services::NETWORK;
 
 pub struct VersionMsg {
     pub version: i32,
-    pub services: u64,
+    pub services: Services,
     pub timestamp: i64,
     pub addr_recv: NetAddrForVersionMsg,
     pub addr_from: NetAddrForVersionMsg,
@@ -15,17 +18,18 @@ pub struct VersionMsg {
     pub relay: bool,
 }
 
+
 impl Bytes for VersionMsg {
     fn length(&self) -> usize {
-        self.version.to_le().length() + self.services.to_le().length()
-            + self.timestamp.to_le().length() + self.addr_recv.length()
-            + self.addr_from.length() + self.nonce.to_le().length()
-            + self.user_agent.length() + self.start_height.to_le().length() + 1
+        self.version.length() + self.services.length()
+            + self.timestamp.length() + self.addr_recv.length()
+            + self.addr_from.length() + self.nonce.length()
+            + self.user_agent.length() + self.start_height.length() + 1
     }
 
     fn write_to(&self, buf: &mut Vec<u8>) {
         self.version.to_le().write_to(buf);
-        self.services.to_le().write_to(buf);
+        self.services.write_to(buf);
         self.timestamp.to_le().write_to(buf);
         self.addr_recv.write_to(buf);
         self.addr_from.write_to(buf);
