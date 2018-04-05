@@ -2,41 +2,59 @@
 #![allow(dead_code)]
 
 use std::net::{IpAddr, SocketAddr};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use bitcoinrs_bytes::Bytes;
 
 pub struct NetAddr {
-    time: Option<u32>, // Not present in version message.
+    time: SystemTime, // Not present in version message.
     services: u64,
     addr: SocketAddr,
 }
 
 impl Bytes for NetAddr {
     fn length(&self) -> usize {
-        if self.time.is_some() {
-            30
-        } else {
-            26
-        }
+        30
     }
 
     fn write_to(&self, buf: &mut Vec<u8>) {
         // Write time field
-        if let Some(time) = self.time {
-            time.to_le().write_to(buf);
-        }
+        self.time
+            .duration_since(UNIX_EPOCH)
+            .unwrap() // `Duration` since `UNIX_EPOCH`
+            .as_secs()
+            .to_le()
+            .write_to(buf);
 
         // Write services field
         self.services.to_le().write_to(buf);
 
-        // Write ipv6 field
-        let ipv6 = match self.addr.ip() {
-            IpAddr::V4(v4) => v4.to_ipv6_mapped(),
-            IpAddr::V6(v6) => v6,
-        };
-        buf.extend_from_slice(&ipv6.octets());
-
-        // Write port field
-        self.addr.port().to_be().write_to(buf);
+        write_addr(self.addr, buf);
     }
+}
+
+pub struct NetAddrForVersionMsg {
+    services: u64,
+    addr: SocketAddr,
+}
+
+impl Bytes for NetAddrForVersionMsg {
+    fn length(&self) -> usize {
+        26
+    }
+
+    fn write_to(&self, buf: &mut Vec<u8>) {
+        self.services.to_le().write_to(buf);
+        write_addr(self.addr, buf);
+    }
+}
+
+fn write_addr(addr: SocketAddr, buf: &mut Vec<u8>) {
+    let ipv6 = match addr.ip() {
+        IpAddr::V4(v4) => v4.to_ipv6_mapped(),
+        IpAddr::V6(v6) => v6,
+    };
+    buf.extend_from_slice(&ipv6.octets());
+
+    addr.port().to_be().write_to(buf);
 }

@@ -1,18 +1,18 @@
 use bitcoinrs_bytes::{Bytes, VarStr};
 
-use commons::*;
+use commons::NetAddrForVersionMsg;
 use super::MsgPayload;
 
 pub struct VersionMsg {
-    version: i32,
-    services: u64,
-    timestamp: i64,
-    addr_recv: NetAddr,
-    addr_from: NetAddr,
-    nonce: u64,
-    user_agent: VarStr<'static>,
-    start_height: i32,
-    relay: bool,
+    pub version: i32,
+    pub services: u64,
+    pub timestamp: i64,
+    pub addr_recv: NetAddrForVersionMsg,
+    pub addr_from: NetAddrForVersionMsg,
+    pub nonce: u64,
+    pub user_agent: VarStr<'static>,
+    pub start_height: i32,
+    pub relay: bool,
 }
 
 impl Bytes for VersionMsg {
