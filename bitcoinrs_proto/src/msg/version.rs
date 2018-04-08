@@ -9,7 +9,8 @@ const DEFAULT_USER_AGENT: &str = "bitcoinrs";
 
 const DEFAULT_VERSION: i32 = 70015;
 
-pub struct VersionMsg {
+#[derive(Debug, Clone, Copy)]
+pub struct VersionMsgPayload {
     version: i32,
     services: Services,
     peer_addr: SocketAddr,
@@ -20,23 +21,24 @@ pub struct VersionMsg {
     relay: bool,
 }
 
-impl VersionMsg {
-    /// Create a new `VersionMsg` struct.
+impl VersionMsgPayload {
+    /// Create a new `VersionMsgPayload` struct.
     /// Initialize some field with default value.
     ///
     /// # Default fields
     /// - version : 70015
     /// - services : NODE_NETWORK
+    /// - nonce : 0
     /// - user_agent : bitcoinrs
     /// - start_height : 0
     /// - relay : false
-    pub fn new(peer_addr: SocketAddr, self_addr: SocketAddr) -> VersionMsg {
-        VersionMsg {
+    pub fn new(peer_addr: SocketAddr, self_addr: SocketAddr) -> VersionMsgPayload {
+        VersionMsgPayload {
             version: DEFAULT_VERSION,
             services: Services::new(&[Service::Network]),
             peer_addr: peer_addr,
             self_addr: self_addr,
-            nonce: 0,
+            nonce: 0, // If this value is 0, nonce field is ignored.
             user_agent: DEFAULT_USER_AGENT,
             start_height: 0,
             relay: false,
@@ -74,7 +76,7 @@ impl VersionMsg {
     }
 }
 
-impl Encodable for VersionMsg {
+impl Encodable for VersionMsgPayload {
     fn length(&self) -> usize {
         4 // version
         + 8 // services
@@ -101,6 +103,6 @@ impl Encodable for VersionMsg {
     }
 }
 
-impl MsgPayload for VersionMsg {
+impl MsgPayload for VersionMsgPayload {
     const COMMAND: &'static str = "version";
 }

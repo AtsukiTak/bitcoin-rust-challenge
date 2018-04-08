@@ -1,15 +1,25 @@
 pub mod version;
 
-pub use self::version::VersionMsg;
+pub use self::version::VersionMsgPayload;
 
-use bitcoinrs_bytes::{Encodable, WriteBuf, endian::{u32_l}};
+use bitcoinrs_bytes::{Encodable, WriteBuf, endian::u32_l};
 use bitcoinrs_crypto::sha256;
 
 use NetworkType;
 
+#[derive(Debug, Clone, Copy)]
 pub struct Msg<M: MsgPayload> {
     magic: u32,
     payload: M,
+}
+
+impl<M: MsgPayload> Msg<M> {
+    pub fn new(network: NetworkType, payload: M) -> Msg<M> {
+        Msg {
+            magic: network.magic_num(),
+            payload: payload,
+        }
+    }
 }
 
 impl<M: MsgPayload> Encodable for Msg<M> {
@@ -38,15 +48,6 @@ impl<M: MsgPayload> Encodable for Msg<M> {
     }
 }
 
-impl<M: MsgPayload> Msg<M> {
-    pub fn new(network: NetworkType, payload: M) -> Msg<M> {
-        Msg {
-            magic: network.magic_num(),
-            payload: payload,
-        }
-    }
-}
-
 /// Marker trait for Bitcoin p2p message payload.
 pub trait MsgPayload: Encodable {
     const COMMAND: &'static str;
@@ -56,6 +57,6 @@ fn write_command<W: WriteBuf>(command: &str, buf: &mut W) {
     assert!(command.len() <= 11);
 
     let mut bytes: [u8; 12] = [0; 12];
-    bytes.copy_from_slice(command.as_bytes());
+    (&mut bytes[..command.len()]).copy_from_slice(command.as_bytes());
     buf.write_bytes(&bytes);
 }
