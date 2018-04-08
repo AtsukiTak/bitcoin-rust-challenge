@@ -89,7 +89,7 @@ mod tests {
     fn write_zeros() {
         let mut vec = Vec::new();
         vec.write_zeros(100);
-        assert_eq!(vec.as_slice(), &[0; 100]);
+        assert_eq!(vec.as_slice(), &[0u8; 100][..]);
     }
 
     #[test]
@@ -103,11 +103,13 @@ mod tests {
 
     #[test]
     fn read_bytes() {
-        let bytes = [0, 1, 2, 3, 4, 5];
+        let bytes: [u8; 6] = [0, 1, 2, 3, 4, 5];
         let mut buf = [0; 3];
-        let read = &[bytes];
+        let mut buf2 = [0; 3];
+        let mut read = Cursor::new(&bytes[..]);
         read.read_bytes(&mut buf);
+        read.read_bytes(&mut buf2);
         assert_eq!(buf, [0, 1, 2]);
-        assert_eq!(read, &[3, 4, 5]);
+        assert_eq!(buf2, [3, 4, 5]);
     }
 }

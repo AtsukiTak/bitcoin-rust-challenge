@@ -49,13 +49,13 @@ impl Encodable for CompactSize {
             buf.write_bytes(&[self.0 as u8]);
         } else if self.0 <= 0xFFFF {
             buf.write_bytes(&[0xFD]);
-            u16_l::new(self.0 as u16).encode(buf);
+            buf.write(u16_l::new(self.0 as u16));
         } else if self.0 <= 0xFFFF_FFFF {
             buf.write_bytes(&[0xFE]);
-            u32_l::new(self.0 as u32).encode(buf);
+            buf.write(u32_l::new(self.0 as u32));
         } else {
             buf.write_bytes(&[0xFF]);
-            u64_l::new(self.0).encode(buf);
+            buf.write(u64_l::new(self.0));
         }
     }
 }
@@ -69,7 +69,7 @@ impl<'a> Encodable for VarStr<'a> {
     }
 
     fn encode<W: WriteBuf>(&self, buf: &mut W) {
-        CompactSize(self.0.len() as u64).encode(buf);
+        buf.write(CompactSize(self.0.len() as u64));
         buf.write_bytes(self.0.as_bytes());
     }
 }

@@ -49,15 +49,16 @@ impl Encodable for VersionMsg {
     }
 
     fn encode<W: WriteBuf>(&self, buf: &mut W) {
-        i32_l::new(self.version).encode(buf);
-        self.services.encode(buf);
-        self.timestamp.encode(buf);
-        NetAddrForVersionMsg::new(self.services, self.peer_addr).encode(buf);
-        NetAddrForVersionMsg::new(self.services, self.self_addr).encode(buf);
-        u64_l::new(self.nonce).encode(buf);
-        VarStr(USER_AGENT).encode(buf);
-        i32_l::new(self.start_height).encode(buf);
-        (self.relay as u8).encode(buf);
+        let chained = i32_l::new(self.version)
+            .chain(self.services)
+            .chain(self.timestamp)
+            .chain(NetAddrForVersionMsg::new(self.services, self.peer_addr))
+            .chain(NetAddrForVersionMsg::new(self.services, self.self_addr))
+            .chain(u64_l::new(self.nonce))
+            .chain(VarStr(USER_AGENT))
+            .chain(i32_l::new(self.start_height))
+            .chain(self.relay as u8);
+        buf.write(chained);
     }
 }
 

@@ -19,13 +19,13 @@ impl<M: MsgPayload> Encodable for Msg<M> {
 
     fn encode<W: WriteBuf>(&self, buf: &mut W) {
         // Write magic valud.
-        u32_l::new(self.magic).encode(buf);
+        buf.write(u32_l::new(self.magic));
 
         // Write NULL padded command string
         write_command(M::COMMAND, buf);
 
         // Write length of payload in bytes
-        u32_l::new(self.payload.length() as u32).encode(buf);
+        buf.write(u32_l::new(self.payload.length() as u32));
 
         let payload = self.payload.to_vec();
 

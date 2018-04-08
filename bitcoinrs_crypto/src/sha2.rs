@@ -1,3 +1,5 @@
+use bitcoinrs_bytes::{WriteBuf, endian::u64_b};
+
 type Word = u32;
 type HashValue = [Word; 8];
 type MsgBlock = [Word; 16];
@@ -24,17 +26,15 @@ const BYTE_SIZE_DATA_LEN: usize = 64 / 8;
 
 fn get_padded_vec(msg: &[u8]) -> Vec<u8> {
     // Calc after padded size
-    let l = msg.len();
-    let size_zero_padding = size_zero_padding(l);
-    let padded_size = l + 1 + size_zero_padding + 8;
-    assert_eq!(padded_size % 64, 0);
+    let size_zero_padding = size_zero_padding(msg.len());
+    let padded_size = msg.len() + 1 + size_zero_padding + 8;
 
     // Prepare buffer vec
     let mut vec = Vec::with_capacity(padded_size);
-    vec.extend_from_slice(msg);
-    vec.push(0b_1000_0000);
-    vec.resize(padded_size - 8, 0);
-    vec.extend_from_slice(&u64_to_bytes(l as u64 * 8));
+    vec.write_bytes(msg);
+    vec.write(0b_1000_0000_u8);
+    vec.write_zeros(size_zero_padding);
+    vec.write(u64_b::new(msg.len() as u64 * 8)); // Length in bits.
 
     vec
 }
@@ -42,12 +42,6 @@ fn get_padded_vec(msg: &[u8]) -> Vec<u8> {
 fn size_zero_padding(l: usize) -> usize {
     let resv_size = (l + 1 + BYTE_SIZE_DATA_LEN) % BYTE_SIZE_PADD_BASE;
     BYTE_SIZE_PADD_BASE - resv_size
-}
-
-fn u64_to_bytes(n: u64) -> [u8; 8] {
-    use std::mem::transmute;
-
-    unsafe { transmute::<u64, [u8; 8]>(n.to_be()) }
 }
 
 struct MsgBlockIter<'a> {

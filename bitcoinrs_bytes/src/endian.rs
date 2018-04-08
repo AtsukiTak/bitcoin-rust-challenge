@@ -33,7 +33,7 @@ macro_rules! impl_prim_endian {
             type Array = [u8; $size];
 
             fn bytes(&self) -> [u8; $size] {
-                unsafe { *(&self.0 as *const _ as *const [u8; $size]) }
+                unsafe { ::std::mem::transmute::<$inner_t, [u8; $size]>(self.0) }
             }
         }
 
@@ -62,18 +62,18 @@ macro_rules! impl_prim_endian {
     };
 }
 
-impl_prim_endian!(u16_l, u16_l, u16, 2, "Big endian", to_le, u16::from_le);
-impl_prim_endian!(u32_l, u32_l, u32, 4, "Big endian", to_le, u32::from_le);
-impl_prim_endian!(u64_l, u64_l, u64, 8, "Big endian", to_le, u64::from_le);
-impl_prim_endian!(u16_b, u16_b, u16, 2, "Little endian", to_be, u16::from_be);
-impl_prim_endian!(u32_b, u32_b, u32, 4, "Little endian", to_be, u32::from_be);
-impl_prim_endian!(u64_b, u64_b, u64, 8, "Little endian", to_be, u64::from_be);
-impl_prim_endian!(i16_l, i16_l, i16, 2, "Big endian", to_le, i16::from_le);
-impl_prim_endian!(i32_l, i32_l, i32, 4, "Big endian", to_le, i32::from_le);
-impl_prim_endian!(i64_l, i64_l, i64, 8, "Big endian", to_le, i64::from_le);
-impl_prim_endian!(i16_b, i16_b, i16, 2, "Little endian", to_be, i16::from_be);
-impl_prim_endian!(i32_b, i32_b, i32, 4, "Little endian", to_be, i32::from_be);
-impl_prim_endian!(i64_b, i64_b, i64, 8, "Little endian", to_be, i64::from_be);
+impl_prim_endian!(u16_l, u16_l, u16, 2, "Little endian", to_le, u16::from_le);
+impl_prim_endian!(u32_l, u32_l, u32, 4, "Little endian", to_le, u32::from_le);
+impl_prim_endian!(u64_l, u64_l, u64, 8, "Little endian", to_le, u64::from_le);
+impl_prim_endian!(u16_b, u16_b, u16, 2, "Big endian", to_be, u16::from_be);
+impl_prim_endian!(u32_b, u32_b, u32, 4, "Big endian", to_be, u32::from_be);
+impl_prim_endian!(u64_b, u64_b, u64, 8, "Big endian", to_be, u64::from_be);
+impl_prim_endian!(i16_l, i16_l, i16, 2, "Little endian", to_le, i16::from_le);
+impl_prim_endian!(i32_l, i32_l, i32, 4, "Little endian", to_le, i32::from_le);
+impl_prim_endian!(i64_l, i64_l, i64, 8, "Little endian", to_le, i64::from_le);
+impl_prim_endian!(i16_b, i16_b, i16, 2, "Big endian", to_be, i16::from_be);
+impl_prim_endian!(i32_b, i32_b, i32, 4, "Big endian", to_be, i32::from_be);
+impl_prim_endian!(i64_b, i64_b, i64, 8, "Big endian", to_be, i64::from_be);
 
 impl ::EncodableSized for u8 {
     const SIZE: usize = 1;
