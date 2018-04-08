@@ -2,63 +2,60 @@ pub mod version;
 
 pub use self::version::VersionMsg;
 
-use bitcoinrs_bytes::Bytes;
+use bitcoinrs_bytes::{Encodable, WriteBuf, endian::{u32_l}};
 use bitcoinrs_crypto::sha256;
 
 use NetworkType;
 
 pub struct Msg<M: MsgPayload> {
-    magic: u32, // little endian
+    magic: u32,
     payload: M,
 }
 
-impl<M: MsgPayload> Bytes for Msg<M> {
+impl<M: MsgPayload> Encodable for Msg<M> {
     fn length(&self) -> usize {
         24 + self.payload.length()
     }
 
-    fn write_to(&self, buf: &mut Vec<u8>) {
+    fn encode<W: WriteBuf>(&self, buf: &mut W) {
         // Write magic valud.
-        self.magic.write_to(buf);
+        u32_l::new(self.magic).encode(buf);
 
         // Write NULL padded command string
         write_command(M::COMMAND, buf);
 
         // Write length of payload in bytes
-        (self.payload.length() as u32).to_le().write_to(buf);
+        u32_l::new(self.payload.length() as u32).encode(buf);
 
-        // Write temporary checksum
-        buf.extend_from_slice(&[0; 4][..]);
-
-        // Write payload
-        self.payload.write_to(buf);
+        let payload = self.payload.to_vec();
 
         // Compute and write checksum
-        const START_PAYLOAD: usize = 24;
-        const START_CHECKSUM: usize = 20;
-        let hash = sha256(&sha256(&buf.as_slice()[START_PAYLOAD..]));
-        buf.as_mut_slice()[START_CHECKSUM..START_CHECKSUM + 4].copy_from_slice(&hash[0..4]);
+        let hash = sha256(&sha256(payload.as_slice()));
+        buf.write_bytes(&hash);
+
+        // Write payload
+        buf.write_bytes(&payload.as_slice());
     }
 }
 
 impl<M: MsgPayload> Msg<M> {
     pub fn new(network: NetworkType, payload: M) -> Msg<M> {
         Msg {
-            magic: network.magic_num().to_le(),
+            magic: network.magic_num(),
             payload: payload,
         }
     }
 }
 
 /// Marker trait for Bitcoin p2p message payload.
-pub trait MsgPayload: Bytes {
+pub trait MsgPayload: Encodable {
     const COMMAND: &'static str;
 }
 
-fn write_command(command: &str, buf: &mut Vec<u8>) {
+fn write_command<W: WriteBuf>(command: &str, buf: &mut W) {
     assert!(command.len() <= 11);
 
     let mut bytes: [u8; 12] = [0; 12];
     bytes.copy_from_slice(command.as_bytes());
-    buf.extend_from_slice(&bytes);
+    buf.write_bytes(&bytes);
 }

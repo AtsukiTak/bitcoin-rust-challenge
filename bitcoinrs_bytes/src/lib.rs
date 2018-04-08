@@ -3,7 +3,7 @@
 
 mod encodable;
 mod decodable;
-mod endian;
+pub mod endian;
 
 pub use encodable::{Encodable, EncodableSized};
 pub use decodable::Decodable;

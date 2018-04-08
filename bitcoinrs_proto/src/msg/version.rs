@@ -1,42 +1,63 @@
-use bitcoinrs_bytes::{Bytes, VarStr};
+use std::net::SocketAddr;
 
-use commons::{NetAddrForVersionMsg, Services};
+use bitcoinrs_bytes::{Encodable, WriteBuf, endian::{i32_l, u64_l}};
+
+use commons::{NetAddrForVersionMsg, Service, Services, Timestamp, VarStr};
 use super::MsgPayload;
 
+const USER_AGENT: &str = "bitcoinrs";
+
 const DEFAULT_VERSION: i32 = 70015;
-const DEFAULT_SERVICES: Services = Services::NETWORK;
 
 pub struct VersionMsg {
-    pub version: i32,
-    pub services: Services,
-    pub timestamp: i64,
-    pub addr_recv: NetAddrForVersionMsg,
-    pub addr_from: NetAddrForVersionMsg,
-    pub nonce: u64,
-    pub user_agent: VarStr<'static>,
-    pub start_height: i32,
-    pub relay: bool,
+    version: i32,
+    services: Services,
+    timestamp: Timestamp,
+    peer_addr: SocketAddr,
+    self_addr: SocketAddr,
+    nonce: u64,
+    start_height: i32,
+    relay: bool,
 }
 
+impl VersionMsg {
+    pub fn new(peer_addr: SocketAddr, self_addr: SocketAddr, start_height: i32) -> VersionMsg {
+        VersionMsg {
+            version: DEFAULT_VERSION,
+            services: Services::new(&[Service::Network]),
+            timestamp: Timestamp::now(),
+            peer_addr: peer_addr,
+            self_addr: self_addr,
+            nonce: 0,
+            start_height: start_height,
+            relay: false,
+        }
+    }
+}
 
-impl Bytes for VersionMsg {
+impl Encodable for VersionMsg {
     fn length(&self) -> usize {
-        self.version.length() + self.services.length()
-            + self.timestamp.length() + self.addr_recv.length()
-            + self.addr_from.length() + self.nonce.length()
-            + self.user_agent.length() + self.start_height.length() + 1
+        4 // version
+        + 8 // services
+        + 8 // timestamp
+        + 26 // addr_recv
+        + 26 // addr_from
+        + 8 // nonce
+        + VarStr(USER_AGENT).length()
+        + 4 // start_height
+        + 1 // relay
     }
 
-    fn write_to(&self, buf: &mut Vec<u8>) {
-        self.version.to_le().write_to(buf);
-        self.services.write_to(buf);
-        self.timestamp.to_le().write_to(buf);
-        self.addr_recv.write_to(buf);
-        self.addr_from.write_to(buf);
-        self.nonce.to_le().write_to(buf);
-        self.user_agent.write_to(buf);
-        self.start_height.to_le().write_to(buf);
-        buf.push(self.relay as u8);
+    fn encode<W: WriteBuf>(&self, buf: &mut W) {
+        i32_l::new(self.version).encode(buf);
+        self.services.encode(buf);
+        self.timestamp.encode(buf);
+        NetAddrForVersionMsg::new(self.services, self.peer_addr).encode(buf);
+        NetAddrForVersionMsg::new(self.services, self.self_addr).encode(buf);
+        u64_l::new(self.nonce).encode(buf);
+        VarStr(USER_AGENT).encode(buf);
+        i32_l::new(self.start_height).encode(buf);
+        (self.relay as u8).encode(buf);
     }
 }
 

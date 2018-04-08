@@ -26,6 +26,12 @@ pub trait Encodable {
     {
         Chain::new(self, e2)
     }
+
+    fn to_vec(&self) -> Vec<u8> {
+        let mut vec = Vec::with_capacity(self.length());
+        self.encode(&mut vec);
+        vec
+    }
 }
 
 /// Encodable into a sized array of bytes.
@@ -41,7 +47,7 @@ pub trait EncodableSized {
 
     /// Encode `self` into bytes and write it to buffer.
     /// It enables you to override `Encodable::encode` function.
-    fn encode<W: WriteBuf>(&self, buf: &mut W) {
+    fn encode_with_bytes<W: WriteBuf>(&self, buf: &mut W) {
         buf.write_bytes(self.bytes().borrow());
     }
 }
@@ -55,7 +61,7 @@ where
     }
 
     fn encode<W: WriteBuf>(&self, buf: &mut W) {
-        <Self as EncodableSized>::encode(self, buf)
+        self.encode_with_bytes(buf)
     }
 }
 
