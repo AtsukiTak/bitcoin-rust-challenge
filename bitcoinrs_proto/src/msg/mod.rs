@@ -41,7 +41,7 @@ impl<M: MsgPayload> Encodable for Msg<M> {
 
         // Compute and write checksum
         let hash = sha256(&sha256(payload.as_slice()));
-        buf.write_bytes(&hash);
+        buf.write_bytes(&hash[0..4]);
 
         // Write payload
         buf.write_bytes(&payload.as_slice());

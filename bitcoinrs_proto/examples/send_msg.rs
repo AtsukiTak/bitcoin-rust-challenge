@@ -20,13 +20,11 @@ fn main() {
         Msg::new(NetworkType::Main, payload).to_vec()
     };
 
-    for byte in ver_msg.iter() {
-        print!("{:X} ", byte);
-    }
-
     socket.write_all(ver_msg.to_vec().as_slice()).unwrap();
     socket.flush().unwrap();
-    for byte in socket.bytes() {
-        print!("{}", byte.unwrap());
-    }
+
+    println!("Sent version msg");
+
+    let mut buf = [0];
+    socket.read_exact(&mut buf).unwrap();
 }

@@ -109,7 +109,9 @@ impl EncodableSized for Services {
     type Array = [u8; 8];
 
     fn bytes(&self) -> [u8; 8] {
-        u64_l::new(self.0).bytes()
+        let bytes = u64_l::new(self.0).bytes();
+        println!("hoge : {:?}", bytes);
+        bytes
     }
 }
 
