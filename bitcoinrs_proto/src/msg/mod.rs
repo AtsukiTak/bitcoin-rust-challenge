@@ -51,6 +51,13 @@ impl<M: MsgPayload> Encodable for Msg<M> {
 /// Marker trait for Bitcoin p2p message payload.
 pub trait MsgPayload: Encodable {
     const COMMAND: &'static str;
+
+    fn into_msg(self, network: NetworkType) -> Msg<Self>
+    where
+        Self: Sized,
+    {
+        Msg::new(network, self)
+    }
 }
 
 fn write_command<W: WriteBuf>(command: &str, buf: &mut W) {
