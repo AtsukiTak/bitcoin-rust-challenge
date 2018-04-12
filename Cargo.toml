@@ -4,9 +4,9 @@ version = "0.1.0"
 authors = ["AtsukiTak <takatomgoo@gmail.com>"]
 
 [dependencies]
-bitcoinrs_proto = { path = "bitcoinrs_proto" }
+bitcoinrs_net = { path = "bitcoinrs_net" }
 bitcoinrs_crypto = { path = "bitcoinrs_crypto" }
 bitcoinrs_bytes = { path = "bitcoinrs_bytes" }
 
 [workspace]
-members = ["bitcoinrs_proto", "bitcoinrs_crypto", "bitcoinrs_bytes"]
+members = ["bitcoinrs_net", "bitcoinrs_crypto", "bitcoinrs_bytes"]

@@ -1,5 +1,5 @@
 [package]
-name = "bitcoinrs_proto"
+name = "bitcoinrs_net"
 version = "0.1.0"
 authors = ["AtsukiTak <takatomgoo@gmail.com>"]
 
