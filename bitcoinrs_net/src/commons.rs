@@ -1,10 +1,11 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, SocketAddr, Ipv6Addr};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use bitcoinrs_bytes::{Encodable, EncodableSized, WriteBuf, endian::{u16_b, u16_l, u32_l, u64_l}};
+use bitcoinrs_bytes::{Decodable, Encodable, EncodableSized, ReadBuf, ReadError, WriteBuf,
+                      endian::{u16_b, u16_l, u32_l, u64_l}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Timestamp(u64);
@@ -25,6 +26,12 @@ impl EncodableSized for Timestamp {
 
     fn bytes(&self) -> [u8; 8] {
         u64_l::new(self.0).bytes()
+    }
+}
+
+impl Decodable for Timestamp {
+    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<Timestamp, ReadError> {
+        Ok(Timestamp(bytes.read::<u64_l>()?.value()))
     }
 }
 
@@ -60,10 +67,25 @@ impl Encodable for CompactSize {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct VarStr<'a>(pub &'a str);
+impl Decodable for CompactSize {
+    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<CompactSize, ReadError> {
+        let first = bytes.read::<u8>()?;
+        if first < 0xFD {
+            Ok(CompactSize(first as u64))
+        } else if first == 0xFD {
+            Ok(CompactSize(bytes.read::<u16_l>()?.value() as u64))
+        } else if first == 0xFE {
+            Ok(CompactSize(bytes.read::<u32_l>()?.value() as u64))
+        } else {
+            Ok(CompactSize(bytes.read::<u64_l>()?.value()))
+        }
+    }
+}
 
-impl<'a> Encodable for VarStr<'a> {
+#[derive(Debug, Clone)]
+pub struct VarStr(pub String);
+
+impl<'a> Encodable for &'a VarStr {
     fn length(&self) -> usize {
         CompactSize(self.0.len() as u64).length() + self.0.len()
     }
@@ -71,6 +93,19 @@ impl<'a> Encodable for VarStr<'a> {
     fn encode<W: WriteBuf>(&self, buf: &mut W) {
         buf.write(CompactSize(self.0.len() as u64));
         buf.write_bytes(self.0.as_bytes());
+    }
+}
+
+impl Decodable for VarStr {
+    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<VarStr, ReadError> {
+        let len = bytes.read::<CompactSize>()?.0;
+        let s = {
+            let mut buf = Vec::with_capacity(len as usize);
+            buf.write_zeros(len as usize);
+            bytes.read_bytes(buf.as_mut_slice())?;
+            String::from_utf8(buf).map_err(|_| ReadError::InvalidBytes)?
+        };
+        Ok(VarStr(s))
     }
 }
 
@@ -113,6 +148,12 @@ impl EncodableSized for Services {
     }
 }
 
+impl Decodable for Services {
+    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<Services, ReadError> {
+        Ok(Services(bytes.read::<u64_l>()?.value()))
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct NetAddr {
     ts: Timestamp, // Not present in version message.
@@ -149,10 +190,23 @@ impl EncodableSized for NetAddr {
     }
 }
 
+impl Decodable for NetAddr {
+    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<NetAddr, ReadError> {
+        let ts = bytes.read::<Timestamp>()?;
+        let services = bytes.read::<Services>()?;
+        let socket_addr = read_addr(bytes)?;
+        Ok(NetAddr {
+            ts: ts,
+            services: services,
+            addr: socket_addr,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct NetAddrForVersionMsg {
-    services: Services,
-    addr: SocketAddr,
+    pub services: Services,
+    pub addr: SocketAddr,
 }
 
 impl NetAddrForVersionMsg {
@@ -176,6 +230,17 @@ impl EncodableSized for NetAddrForVersionMsg {
     }
 }
 
+impl Decodable for NetAddrForVersionMsg {
+    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<NetAddrForVersionMsg, ReadError> {
+        let services = bytes.read::<Services>()?;
+        let socket_addr = read_addr(bytes)?;
+        Ok(NetAddrForVersionMsg {
+            services: services,
+            addr: socket_addr,
+        })
+    }
+}
+
 fn write_addr(addr: SocketAddr, buf: &mut [u8]) {
     let ipv6 = match addr.ip() {
         IpAddr::V4(v4) => v4.to_ipv6_mapped(),
@@ -184,4 +249,12 @@ fn write_addr(addr: SocketAddr, buf: &mut [u8]) {
     (&mut buf[0..16]).copy_from_slice(&ipv6.octets());
 
     (&mut buf[16..18]).copy_from_slice(&u16_b::new(addr.port()).bytes());
+}
+
+fn read_addr<R: ReadBuf>(bytes: &mut R) -> Result<SocketAddr, ReadError> {
+    let mut ip_octet = [0; 16];
+    bytes.read_bytes(&mut ip_octet)?;
+    let ipv6 = Ipv6Addr::from(ip_octet);
+    let port = bytes.read::<u16_l>()?.value();
+    Ok(SocketAddr::new(IpAddr::V6(ipv6), port))
 }
