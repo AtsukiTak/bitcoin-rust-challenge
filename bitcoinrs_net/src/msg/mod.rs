@@ -1,6 +1,8 @@
 pub mod version;
+pub mod verack;
 
 pub use self::version::VersionMsgPayload;
+pub use self::verack::VerackMsgPayload;
 
 use bitcoinrs_bytes::{Encodable, WriteBuf, endian::u32_l};
 use bitcoinrs_crypto::sha256;
