@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use bitcoinrs_bytes::{Decodable, Encodable, EncodableSized, ReadBuf, ReadError, WriteBuf,
                       endian::{u16_b, u16_l, u32_l, u64_l}};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Timestamp(u64);
 
 impl Timestamp {
@@ -35,7 +35,7 @@ impl Decodable for Timestamp {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CompactSize(pub u64);
 
 impl Encodable for CompactSize {
@@ -82,7 +82,7 @@ impl Decodable for CompactSize {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarStr(pub String);
 
 impl<'a> Encodable for &'a VarStr {
@@ -109,7 +109,7 @@ impl Decodable for VarStr {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Service {
     Network = 1,
     Getutxo = 2,
@@ -118,7 +118,7 @@ pub enum Service {
     NetworkLimited = 1024,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Services(u64);
 
 impl Services {
@@ -154,7 +154,7 @@ impl Decodable for Services {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NetAddr {
     ts: Timestamp, // Not present in version message.
     services: Services,
@@ -203,7 +203,7 @@ impl Decodable for NetAddr {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NetAddrForVersionMsg {
     pub services: Services,
     pub addr: SocketAddr,
