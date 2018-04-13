@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use bitcoinrs_bytes::{Decodable, Encodable, ReadBuf, ReadError, WriteBuf, endian::{i32_l, u64_l}};
+use bitcoinrs_bytes::{Bytes, BytesMut, Decodable, DecodeError, Encodable, endian::{i32_l, u64_l}};
 
 use commons::{NetAddrForVersionMsg, Service, Services, Timestamp, VarStr};
 use msg::MsgPayload;
@@ -96,7 +96,7 @@ impl Encodable for VersionMsgPayload {
         + 1 // relay
     }
 
-    fn encode<W: WriteBuf>(&self, buf: &mut W) {
+    fn encode(&self, buf: &mut BytesMut) {
         buf.write(i32_l::new(self.version));
         buf.write(self.services);
         buf.write(self.timestamp);
@@ -110,18 +110,18 @@ impl Encodable for VersionMsgPayload {
 }
 
 impl Decodable for VersionMsgPayload {
-    fn decode<R: ReadBuf>(bytes: &mut R) -> Result<VersionMsgPayload, ReadError> {
+    fn decode(bytes: &mut Bytes) -> Result<VersionMsgPayload, DecodeError> {
         let version = bytes.read::<i32_l>()?.value();
         let services = bytes.read::<Services>()?;
         let timestamp = bytes.read::<Timestamp>()?;
 
         let remote_addr = bytes.read::<NetAddrForVersionMsg>()?;
         if remote_addr.services != services {
-            return Err(ReadError::InvalidBytes);
+            return Err(DecodeError::InvalidBytes);
         }
         let local_addr = bytes.read::<NetAddrForVersionMsg>()?;
         if local_addr.services != services {
-            return Err(ReadError::InvalidBytes);
+            return Err(DecodeError::InvalidBytes);
         }
 
         let nonce = bytes.read::<u64_l>()?.value();

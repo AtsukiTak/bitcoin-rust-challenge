@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
-use super::WriteBuf;
+use BytesMut;
 
 use std::borrow::Borrow;
 
@@ -11,10 +11,7 @@ pub trait Encodable {
     fn length(&self) -> usize;
 
     /// Encode `Self` into bytes and write it to buffer.
-    /// Note that you don't need to call `WriteBuf::reserve` function
-    /// because `WriteBuf::encode` automatically reserves buffer
-    /// according to `Encodable::length` function.
-    fn encode<W: WriteBuf>(&self, buf: &mut W);
+    fn encode(&self, buf: &mut BytesMut);
 
     /// Chain two `Encodable` struct into single.
     /// Since heap allocation is occured once per `WriteBuf::write` call,
@@ -27,10 +24,12 @@ pub trait Encodable {
         Chain::new(self, e2)
     }
 
+    /// Convenient function to create Vec<u8> representing encoded bytes.
     fn to_vec(&self) -> Vec<u8> {
-        let mut vec = Vec::with_capacity(self.length());
-        self.encode(&mut vec);
-        vec
+        let mut bytes = BytesMut::new();
+        bytes.reserve(self.length());
+        self.encode(&mut bytes);
+        bytes.to_vec()
     }
 }
 
@@ -47,7 +46,7 @@ pub trait EncodableSized {
 
     /// Encode `self` into bytes and write it to buffer.
     /// It enables you to override `Encodable::encode` function.
-    fn encode_with_bytes<W: WriteBuf>(&self, buf: &mut W) {
+    fn encode_with_bytes(&self, buf: &mut BytesMut) {
         buf.write_bytes(self.bytes().borrow());
     }
 }
@@ -60,7 +59,7 @@ where
         T::SIZE
     }
 
-    fn encode<W: WriteBuf>(&self, buf: &mut W) {
+    fn encode(&self, buf: &mut BytesMut) {
         self.encode_with_bytes(buf)
     }
 }
@@ -85,7 +84,7 @@ where
         self.e1.length() + self.e2.length()
     }
 
-    fn encode<W: WriteBuf>(&self, buf: &mut W) {
+    fn encode(&self, buf: &mut BytesMut) {
         self.e1.encode(buf);
         self.e2.encode(buf);
     }

@@ -15,6 +15,8 @@ pub struct i64_b(i64);
 
 use std::fmt::{Debug, Display, Error as FmtError, Formatter};
 
+use {Bytes, Decodable, EncodableSized, DecodeError};
+
 macro_rules! impl_prim_endian {
     ($t: ty, $t_exp: expr, $inner_t: ty, $size: expr, $en_s: expr, $to_en: ident, $from_en: path) => {
         impl $t {
@@ -29,7 +31,7 @@ macro_rules! impl_prim_endian {
             }
         }
 
-        impl ::EncodableSized for $t {
+        impl EncodableSized for $t {
             const SIZE: usize = $size;
 
             type Array = [u8; $size];
@@ -39,10 +41,10 @@ macro_rules! impl_prim_endian {
             }
         }
 
-        impl ::Decodable for $t {
-            fn decode<R: ::ReadBuf>(reader: &mut R) -> Result<$t, ::ReadError> {
+        impl Decodable for $t {
+            fn decode(bytes: &mut Bytes) -> Result<$t, DecodeError> {
                 let mut buf: [u8; $size] = [0; $size];
-                reader.read_bytes(&mut buf)?;
+                bytes.read_bytes(&mut buf)?;
                 let raw_num = unsafe { *(&buf as *const _ as *const $inner_t) };
                 Ok($t_exp(raw_num))
             }
@@ -77,7 +79,7 @@ impl_prim_endian!(i16_b, i16_b, i16, 2, "Big endian", to_be, i16::from_be);
 impl_prim_endian!(i32_b, i32_b, i32, 4, "Big endian", to_be, i32::from_be);
 impl_prim_endian!(i64_b, i64_b, i64, 8, "Big endian", to_be, i64::from_be);
 
-impl ::EncodableSized for u8 {
+impl EncodableSized for u8 {
     const SIZE: usize = 1;
     type Array = [u8; 1];
 
@@ -86,15 +88,15 @@ impl ::EncodableSized for u8 {
     }
 }
 
-impl ::Decodable for u8 {
-    fn decode<R: ::ReadBuf>(reader: &mut R) -> Result<u8, ::ReadError> {
+impl Decodable for u8 {
+    fn decode(bytes: &mut Bytes) -> Result<u8, DecodeError> {
         let mut buf = [0];
-        reader.read_bytes(&mut buf)?;
+        bytes.read_bytes(&mut buf)?;
         Ok(buf[0])
     }
 }
 
-impl ::EncodableSized for i8 {
+impl EncodableSized for i8 {
     const SIZE: usize = 1;
     type Array = [u8; 1];
 
@@ -103,10 +105,8 @@ impl ::EncodableSized for i8 {
     }
 }
 
-impl ::Decodable for i8 {
-    fn decode<R: ::ReadBuf>(reader: &mut R) -> Result<i8, ::ReadError> {
-        let mut buf = [0];
-        reader.read_bytes(&mut buf)?;
-        Ok(buf[0] as i8)
+impl Decodable for i8 {
+    fn decode(bytes: &mut Bytes) -> Result<i8, DecodeError> {
+        Ok(bytes.read::<u8>()? as i8)
     }
 }

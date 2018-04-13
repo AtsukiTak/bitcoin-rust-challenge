@@ -4,9 +4,7 @@ pub mod verack;
 pub use self::version::VersionMsgPayload;
 pub use self::verack::VerackMsgPayload;
 
-use std::io::Cursor;
-
-use bitcoinrs_bytes::{Decodable, Encodable, ReadBuf, ReadError, WriteBuf, endian::u32_l};
+use bitcoinrs_bytes::{Bytes, BytesMut, Decodable, DecodeError, Encodable, endian::u32_l};
 use bitcoinrs_crypto::sha256;
 
 use NetworkType;
@@ -46,7 +44,7 @@ impl<P: MsgPayload> Encodable for Msg<P> {
         24 + self.payload.length()
     }
 
-    fn encode<W: WriteBuf>(&self, buf: &mut W) {
+    fn encode(&self, buf: &mut BytesMut) {
         // Write magic valud.
         buf.write(u32_l::new(self.net_type.magic_num()));
 
@@ -69,20 +67,18 @@ impl<P: MsgPayload> Encodable for Msg<P> {
 }
 
 impl<P: MsgPayload> Decodable for Msg<P> {
-    fn decode<R>(bytes: &mut R) -> Result<Self, ReadError>
-    where
-        R: ReadBuf,
+    fn decode(bytes: &mut Bytes) -> Result<Self, DecodeError>
     {
         // decode network type
         let magic_num = bytes.read::<u32_l>()?.value();
-        let net_type = NetworkType::from_magic_num(magic_num).ok_or(ReadError::InvalidBytes)?;
+        let net_type = NetworkType::from_magic_num(magic_num).ok_or(DecodeError::InvalidBytes)?;
 
         // read and check command bytes
         {
             let mut command = [0; 12];
             bytes.read_bytes(&mut command)?;
             if command != P::COMMAND_BYTES {
-                return Err(ReadError::InvalidBytes);
+                return Err(DecodeError::InvalidBytes);
             }
         };
 
@@ -98,20 +94,20 @@ impl<P: MsgPayload> Decodable for Msg<P> {
 
         // read payload bytes
         let payload_bytes = {
-            let mut vec = Vec::with_capacity(len as usize);
-            vec.write_zeros(len as usize);
-            bytes.read_bytes(vec.as_mut_slice())?;
-            vec
+            let mut payload_bytes = BytesMut::new();
+            payload_bytes.reserve(len as usize);
+            payload_bytes.write(*bytes);
+            payload_bytes
         };
 
         // check checksum
         let computed_hash = sha256(&sha256(payload_bytes.as_slice()));
         if &computed_hash[0..4] != &checksum {
-            return Err(ReadError::InvalidBytes);
+            return Err(DecodeError::InvalidBytes);
         }
 
         // decode payload
-        let payload = P::decode(&mut Cursor::new(payload_bytes.as_slice()))?;
+        let payload = P::decode(&mut payload_bytes.bytes())?;
 
         Ok(Msg::new(net_type, payload))
     }
