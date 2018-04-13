@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 pub struct u16_l(u16);
 pub struct u32_l(u32);
 pub struct u64_l(u64);
