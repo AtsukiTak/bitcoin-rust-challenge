@@ -35,6 +35,10 @@ impl<P: MsgPayload> Msg<P> {
     pub fn payload(&self) -> &P {
         &self.payload
     }
+
+    pub fn payload_mut(&mut self) -> &mut P {
+        &mut self.payload
+    }
 }
 
 impl<P: MsgPayload> Encodable for Msg<P> {
