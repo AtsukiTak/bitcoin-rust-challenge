@@ -62,10 +62,21 @@ pub trait ReadBuf {
 }
 
 use std::io::{Cursor, Read};
+use std::net::TcpStream;
 
 impl<'a> ReadBuf for Cursor<&'a [u8]> {
     fn read_bytes(&mut self, buf: &mut [u8]) -> Result<(), ReadError> {
         self.read_exact(buf).map_err(|_| ReadError::ShortLength)
+    }
+}
+
+impl ReadBuf for TcpStream {
+    fn read_bytes(&mut self, buf: &mut [u8]) -> Result<(), ReadError> {
+        match self.peek(buf) {
+            Ok(n) if n == buf.len() => Ok(()),
+            Ok(_n) => Err(ReadError::ShortLength),
+            Err(_e) => Err(ReadError::UnderlyingError),
+        }
     }
 }
 
