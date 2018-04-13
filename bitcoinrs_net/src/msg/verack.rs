@@ -1,5 +1,7 @@
 use bitcoinrs_bytes::{Decodable, Encodable, ReadBuf, ReadError, WriteBuf};
 
+use msg::MsgPayload;
+
 #[derive(Debug, Clone, Copy)]
 pub struct VerackMsgPayload(());
 
@@ -25,4 +27,8 @@ impl Decodable for VerackMsgPayload {
     {
         Ok(VerackMsgPayload::new())
     }
+}
+
+impl MsgPayload for VerackMsgPayload {
+    const COMMAND_BYTES: [u8; 12] = [0x76, 0x65, 0x72, 0x61, 0x63, 0x6b, 0, 0, 0, 0, 0, 0];
 }

@@ -11,20 +11,17 @@ use bitcoinrs_crypto::sha256;
 
 use NetworkType;
 
+pub type VersionMsg = Msg<VersionMsgPayload>;
+pub type VerackMsg = Msg<VerackMsgPayload>;
+
 #[derive(Debug, Clone)]
-pub struct Msg {
+pub struct Msg<P: MsgPayload> {
     net_type: NetworkType,
-    payload: MsgPayload,
+    payload: P,
 }
 
-#[derive(Debug, Clone)]
-pub enum MsgPayload {
-    Version(VersionMsgPayload),
-    Verack,
-}
-
-impl Msg {
-    pub fn new(net_type: NetworkType, payload: MsgPayload) -> Msg {
+impl<P: MsgPayload> Msg<P> {
+    pub fn new(net_type: NetworkType, payload: P) -> Msg<P> {
         Msg {
             net_type: net_type,
             payload: payload,
@@ -35,12 +32,12 @@ impl Msg {
         self.net_type
     }
 
-    pub fn payload(&self) -> &MsgPayload {
+    pub fn payload(&self) -> &P {
         &self.payload
     }
 }
 
-impl Encodable for Msg {
+impl<P: MsgPayload> Encodable for Msg<P> {
     fn length(&self) -> usize {
         24 + self.payload.length()
     }
@@ -50,11 +47,12 @@ impl Encodable for Msg {
         buf.write(u32_l::new(self.net_type.magic_num()));
 
         // Write NULL padded command string
-        buf.write_bytes(&self.payload.command_bytes());
+        buf.write_bytes(&P::COMMAND_BYTES);
 
         // Write length of payload in bytes
         buf.write(u32_l::new(self.payload.length() as u32));
 
+        // Encode payload into bytes.
         let payload = self.payload.to_vec();
 
         // Compute and write checksum
@@ -66,7 +64,7 @@ impl Encodable for Msg {
     }
 }
 
-impl Decodable for Msg {
+impl<P: MsgPayload> Decodable for Msg<P> {
     fn decode<R>(bytes: &mut R) -> Result<Self, ReadError>
     where
         R: ReadBuf,
@@ -75,11 +73,13 @@ impl Decodable for Msg {
         let magic_num = bytes.read::<u32_l>()?.value();
         let net_type = NetworkType::from_magic_num(magic_num).ok_or(ReadError::InvalidBytes)?;
 
-        // read command bytes
-        let command_bytes = {
+        // read and check command bytes
+        {
             let mut command = [0; 12];
             bytes.read_bytes(&mut command)?;
-            command
+            if command != P::COMMAND_BYTES {
+                return Err(ReadError::InvalidBytes);
+            }
         };
 
         // decode length of payload in bytes
@@ -107,64 +107,16 @@ impl Decodable for Msg {
         }
 
         // decode payload
-        let payload = MsgPayload::decode_with_command_bytes(
-            command_bytes,
-            &mut Cursor::new(payload_bytes.as_slice()),
-        )?;
+        let payload = P::decode(&mut Cursor::new(payload_bytes.as_slice()))?;
 
         Ok(Msg::new(net_type, payload))
     }
 }
 
-const COMMAND_BYTES_VERSION: [u8; 12] = [0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0, 0, 0, 0, 0];
-const COMMAND_BYTES_VERACK: [u8; 12] = [0x76, 0x65, 0x72, 0x61, 0x63, 0x6b, 0, 0, 0, 0, 0, 0];
+pub trait MsgPayload: 'static + Sized + Encodable + Decodable {
+    const COMMAND_BYTES: [u8; 12];
 
-impl MsgPayload {
-    pub fn command_bytes(&self) -> [u8; 12] {
-        match self {
-            &MsgPayload::Version(_) => COMMAND_BYTES_VERSION,
-            &MsgPayload::Verack => COMMAND_BYTES_VERACK,
-        }
-    }
-
-    pub fn is_version(&self) -> Option<&VersionMsgPayload> {
-        match self {
-            &MsgPayload::Version(ref p) => Some(p),
-            _ => None,
-        }
-    }
-
-    pub fn is_verack(&self) -> Option<()> {
-        match self {
-            &MsgPayload::Verack => Some(()),
-            _ => None,
-        }
-    }
-
-    pub fn decode_with_command_bytes<R: ReadBuf>(
-        command: [u8; 12],
-        read_buf: &mut R,
-    ) -> Result<MsgPayload, ReadError> {
-        match command {
-            COMMAND_BYTES_VERSION => Ok(MsgPayload::Version(read_buf.read()?)),
-            COMMAND_BYTES_VERACK => Ok(MsgPayload::Verack),
-            _ => Err(ReadError::InvalidBytes),
-        }
-    }
-}
-
-impl Encodable for MsgPayload {
-    fn length(&self) -> usize {
-        match self {
-            &MsgPayload::Version(ref p) => p.length(),
-            &MsgPayload::Verack => 0,
-        }
-    }
-
-    fn encode<W: WriteBuf>(&self, buf: &mut W) {
-        match self {
-            &MsgPayload::Version(ref p) => p.encode(buf),
-            &MsgPayload::Verack => (),
-        }
+    fn into_msg(self, net_type: NetworkType) -> Msg<Self> {
+        Msg::new(net_type, self)
     }
 }

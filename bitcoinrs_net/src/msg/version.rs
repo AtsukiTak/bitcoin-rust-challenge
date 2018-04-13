@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use bitcoinrs_bytes::{Decodable, Encodable, ReadBuf, ReadError, WriteBuf, endian::{i32_l, u64_l}};
 
 use commons::{NetAddrForVersionMsg, Service, Services, Timestamp, VarStr};
+use msg::MsgPayload;
 
 const DEFAULT_USER_AGENT: &str = "bitcoinrs";
 
@@ -140,4 +141,8 @@ impl Decodable for VersionMsgPayload {
             relay: relay,
         })
     }
+}
+
+impl MsgPayload for VersionMsgPayload {
+    const COMMAND_BYTES: [u8; 12] = [0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0, 0, 0, 0, 0];
 }
