@@ -115,7 +115,13 @@ impl Decodable for VersionMsgPayload {
         let timestamp = bytes.read::<Timestamp>()?;
 
         let remote_addr = bytes.read::<NetAddrForVersionMsg>()?;
+        if remote_addr.services != services {
+            return Err(ReadError::InvalidBytes);
+        }
         let local_addr = bytes.read::<NetAddrForVersionMsg>()?;
+        if local_addr.services != services {
+            return Err(ReadError::InvalidBytes);
+        }
 
         let nonce = bytes.read::<u64_l>()?.value();
         let user_agent = bytes.read::<VarStr>()?;
