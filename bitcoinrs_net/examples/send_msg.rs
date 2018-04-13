@@ -1,12 +1,12 @@
 extern crate bitcoinrs_bytes;
-extern crate bitcoinrs_proto;
+extern crate bitcoinrs_net;
 
 use std::net::*;
 use std::io::{Read, Write};
 
 use bitcoinrs_bytes::Encodable;
 
-use bitcoinrs_proto::{NetworkType, msg::{Msg, VersionMsgPayload}};
+use bitcoinrs_net::{NetworkType, msg::{Msg, VersionMsgPayload}};
 
 fn main() {
     let mut socket = TcpStream::connect("138.201.55.219:8333").unwrap();
