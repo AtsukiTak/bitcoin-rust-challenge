@@ -75,6 +75,10 @@ impl BytesMut {
         self.0.len()
     }
 
+    pub fn capacity(&self) -> usize {
+        self.0.capacity()
+    }
+
     pub fn bytes(&self) -> Bytes {
         Bytes::new(self.0.as_slice())
     }
