@@ -17,7 +17,7 @@ fn main() {
         let local_addr = socket.local_addr().unwrap();
         println!("local addr : {:?}", local_addr);
         let payload = VersionMsgPayload::new(peer_addr, local_addr);
-        Msg::new(NetworkType::Main, payload).to_vec()
+        Msg::new(NetworkType::Main, payload)
     };
 
     socket.write_all(ver_msg.to_vec().as_slice()).unwrap();
