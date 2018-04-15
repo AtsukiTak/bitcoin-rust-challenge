@@ -4,7 +4,7 @@ extern crate bitcoinrs_net;
 use std::net::*;
 use std::io::{Read, Write};
 
-use bitcoinrs_bytes::Encodable;
+use bitcoinrs_bytes::encode::Encodable;
 
 use bitcoinrs_net::{NetworkType, msg::{Msg, VersionMsgPayload}};
 
@@ -17,7 +17,7 @@ fn main() {
         let local_addr = socket.local_addr().unwrap();
         println!("local addr : {:?}", local_addr);
         let payload = VersionMsgPayload::new(peer_addr, local_addr);
-        Msg::new(NetworkType::Main, payload).to_vec()
+        Msg::new(NetworkType::Main, payload)
     };
 
     socket.write_all(ver_msg.to_vec().as_slice()).unwrap();

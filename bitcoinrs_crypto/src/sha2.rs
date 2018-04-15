@@ -1,4 +1,8 @@
-use bitcoinrs_bytes::{Bytes, BytesMut, endian::{u32_b, u64_b}};
+use std::io::Cursor;
+
+use bitcoinrs_bytes::decode::ReadBuffer;
+use bitcoinrs_bytes::encode::WriteBuffer;
+use bitcoinrs_bytes::endian::{u32_b, u64_b};
 
 type Word = u32;
 type HashValue = [Word; 8];
@@ -8,7 +12,7 @@ type ExpandedMsgBlock = [Word; 64]; // aka message schedule.
 pub fn sha256(msg: &[u8]) -> [u8; 32] {
     // Preprocessing
     let bytes = get_padded_bytes(msg);
-    let msg_block_iter = MsgBlockIter::new(bytes.bytes());
+    let msg_block_iter = MsgBlockIter::new(bytes.as_slice());
 
     // Computation
     let hash_val = compute_hash(msg_block_iter);
@@ -24,18 +28,17 @@ pub fn sha256(msg: &[u8]) -> [u8; 32] {
 const BYTE_SIZE_PADD_BASE: usize = 512 / 8;
 const BYTE_SIZE_DATA_LEN: usize = 64 / 8;
 
-fn get_padded_bytes(msg: &[u8]) -> BytesMut {
+fn get_padded_bytes(msg: &[u8]) -> Vec<u8> {
     // Calc after padded size
     let size_zero_padding = size_zero_padding(msg.len());
     let padded_size = msg.len() + 1 + size_zero_padding + 8;
 
     // Prepare buffer
-    let mut bytes = BytesMut::new();
-    bytes.reserve(padded_size);
-    bytes.write_bytes(msg);
-    bytes.write(0b_1000_0000_u8);
-    bytes.write_zeros(size_zero_padding);
-    bytes.write(u64_b::new(msg.len() as u64 * 8)); // Length in bits.
+    let mut bytes = Vec::with_capacity(padded_size);
+    bytes.write_bytes(msg).unwrap();
+    bytes.write(0b_1000_0000_u8).unwrap();
+    write_zeros(&mut bytes, size_zero_padding);
+    bytes.write(u64_b::new(msg.len() as u64 * 8)).unwrap(); // Length in bits.
 
     bytes
 }
@@ -45,13 +48,22 @@ fn size_zero_padding(l: usize) -> usize {
     BYTE_SIZE_PADD_BASE - resv_size
 }
 
+fn write_zeros(vec: &mut Vec<u8>, zeros: usize) {
+    unsafe {
+        let p = vec.len();
+        vec.set_len(p + zeros);
+    }
+}
+
 struct MsgBlockIter<'a> {
-    msg: Bytes<'a>,
+    msg: Cursor<&'a [u8]>,
 }
 
 impl<'a> MsgBlockIter<'a> {
-    pub fn new(msg: Bytes<'a>) -> MsgBlockIter<'a> {
-        MsgBlockIter { msg: msg }
+    pub fn new(msg: &'a [u8]) -> MsgBlockIter<'a> {
+        MsgBlockIter {
+            msg: Cursor::new(msg),
+        }
     }
 }
 

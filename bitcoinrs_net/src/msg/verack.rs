@@ -1,4 +1,5 @@
-use bitcoinrs_bytes::{Bytes, BytesMut, Decodable, DecodeError, Encodable};
+use bitcoinrs_bytes::encode::{Encodable, EncodeError, WriteBuffer};
+use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 
 use msg::MsgPayload;
 
@@ -17,11 +18,13 @@ impl Encodable for VerackMsgPayload {
     }
 
     /// Nothing to encode.
-    fn encode(&self, _buf: &mut BytesMut) {}
+    fn encode<W: WriteBuffer>(&self, _buf: &mut W) -> Result<(), EncodeError> {
+        Ok(())
+    }
 }
 
 impl Decodable for VerackMsgPayload {
-    fn decode(_bytes: &mut Bytes) -> Result<Self, DecodeError> {
+    fn decode<R: ReadBuffer>(_bytes: &mut R) -> Result<Self, DecodeError> {
         Ok(VerackMsgPayload::new())
     }
 }

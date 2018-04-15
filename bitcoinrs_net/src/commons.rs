@@ -4,8 +4,9 @@
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use bitcoinrs_bytes::{Bytes, BytesMut, Decodable, DecodeError, Encodable, EncodableSized,
-                      endian::{u16_b, u16_l, u32_l, u64_l}};
+use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
+use bitcoinrs_bytes::encode::{Encodable, EncodableSized, EncodeError, WriteBuffer};
+use bitcoinrs_bytes::endian::{u16_b, u16_l, u32_l, u64_l};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Timestamp(u64);
@@ -30,7 +31,7 @@ impl EncodableSized for Timestamp {
 }
 
 impl Decodable for Timestamp {
-    fn decode(bytes: &mut Bytes) -> Result<Timestamp, DecodeError> {
+    fn decode<R: ReadBuffer>(bytes: &mut R) -> Result<Timestamp, DecodeError> {
         Ok(Timestamp(bytes.read::<u64_l>()?.value()))
     }
 }
@@ -51,24 +52,24 @@ impl Encodable for CompactSize {
         }
     }
 
-    fn encode(&self, buf: &mut BytesMut) {
+    fn encode<W: WriteBuffer>(&self, buf: &mut W) -> Result<(), EncodeError> {
         if self.0 < 0xFD {
-            buf.write(self.0 as u8);
+            buf.write(self.0 as u8)
         } else if self.0 <= 0xFFFF {
-            buf.write(0xFD_u8);
-            buf.write(u16_l::new(self.0 as u16));
+            buf.write(0xFD_u8)?;
+            buf.write(u16_l::new(self.0 as u16))
         } else if self.0 <= 0xFFFF_FFFF {
-            buf.write(0xFE_u8);
-            buf.write(u32_l::new(self.0 as u32));
+            buf.write(0xFE_u8)?;
+            buf.write(u32_l::new(self.0 as u32))
         } else {
-            buf.write(0xFF_u8);
-            buf.write(u64_l::new(self.0));
+            buf.write(0xFF_u8)?;
+            buf.write(u64_l::new(self.0))
         }
     }
 }
 
 impl Decodable for CompactSize {
-    fn decode(bytes: &mut Bytes) -> Result<CompactSize, DecodeError> {
+    fn decode<R: ReadBuffer>(bytes: &mut R) -> Result<CompactSize, DecodeError> {
         let first = bytes.read::<u8>()?;
         if first < 0xFD {
             Ok(CompactSize(first as u64))
@@ -90,22 +91,17 @@ impl<'a> Encodable for &'a VarStr {
         CompactSize(self.0.len() as u64).length() + self.0.len()
     }
 
-    fn encode(&self, buf: &mut BytesMut) {
-        buf.write(CompactSize(self.0.len() as u64));
-        buf.write_bytes(self.0.as_bytes());
+    fn encode<W: WriteBuffer>(&self, buf: &mut W) -> Result<(), EncodeError> {
+        buf.write(CompactSize(self.0.len() as u64))?;
+        buf.write_bytes(self.0.as_bytes())
     }
 }
 
 impl Decodable for VarStr {
-    fn decode(bytes: &mut Bytes) -> Result<VarStr, DecodeError> {
-        let len = bytes.read::<CompactSize>()?.0;
-        let s = {
-            let mut buf = BytesMut::new();
-            buf.reserve(len as usize);
-            buf.write_zeros(len as usize);
-            buf.write(*bytes);
-            String::from_utf8(buf.to_vec()).map_err(|_| DecodeError::InvalidBytes)?
-        };
+    fn decode<R: ReadBuffer>(buf: &mut R) -> Result<VarStr, DecodeError> {
+        let len = buf.read::<CompactSize>()?.0;
+        let s = String::from_utf8(buf.read_bytes(len as usize)?.to_vec())
+            .map_err(|_| DecodeError::InvalidBytes)?;
         Ok(VarStr(s))
     }
 }
@@ -150,7 +146,7 @@ impl EncodableSized for Services {
 }
 
 impl Decodable for Services {
-    fn decode(bytes: &mut Bytes) -> Result<Services, DecodeError> {
+    fn decode<R: ReadBuffer>(bytes: &mut R) -> Result<Services, DecodeError> {
         Ok(Services(bytes.read::<u64_l>()?.value()))
     }
 }
@@ -192,10 +188,13 @@ impl EncodableSized for NetAddr {
 }
 
 impl Decodable for NetAddr {
-    fn decode(bytes: &mut Bytes) -> Result<NetAddr, DecodeError> {
-        let ts = bytes.read::<Timestamp>()?;
-        let services = bytes.read::<Services>()?;
-        let socket_addr = read_addr(bytes)?;
+    fn decode<R: ReadBuffer>(buf: &mut R) -> Result<NetAddr, DecodeError> {
+        let ts = buf.read::<Timestamp>()?;
+        let services = buf.read::<Services>()?;
+        let ipv6 =
+            Ipv6Addr::from(unsafe { *(&buf.read_bytes(16)? as *const _ as *const [u8; 16]) });
+        let port = buf.read::<u16_l>()?.value();
+        let socket_addr = SocketAddr::new(IpAddr::V6(ipv6), port);
         Ok(NetAddr {
             ts: ts,
             services: services,
@@ -232,9 +231,11 @@ impl EncodableSized for NetAddrForVersionMsg {
 }
 
 impl Decodable for NetAddrForVersionMsg {
-    fn decode(bytes: &mut Bytes) -> Result<NetAddrForVersionMsg, DecodeError> {
-        let services = bytes.read::<Services>()?;
-        let socket_addr = read_addr(bytes)?;
+    fn decode<R: ReadBuffer>(buf: &mut R) -> Result<NetAddrForVersionMsg, DecodeError> {
+        let services = buf.read::<Services>()?;
+        let ipv6 = Ipv6Addr::from(buf.read::<[u8; 16]>()?);
+        let port = buf.read::<u16_l>()?.value();
+        let socket_addr = SocketAddr::new(IpAddr::V6(ipv6), port);
         Ok(NetAddrForVersionMsg {
             services: services,
             addr: socket_addr,
@@ -250,12 +251,4 @@ fn write_addr(addr: SocketAddr, buf: &mut [u8]) {
     (&mut buf[0..16]).copy_from_slice(&ipv6.octets());
 
     (&mut buf[16..18]).copy_from_slice(&u16_b::new(addr.port()).bytes());
-}
-
-fn read_addr(bytes: &mut Bytes) -> Result<SocketAddr, DecodeError> {
-    let mut ip_octet = [0; 16];
-    bytes.read_bytes(&mut ip_octet)?;
-    let ipv6 = Ipv6Addr::from(ip_octet);
-    let port = bytes.read::<u16_l>()?.value();
-    Ok(SocketAddr::new(IpAddr::V6(ipv6), port))
 }

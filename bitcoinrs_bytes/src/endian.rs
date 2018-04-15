@@ -15,7 +15,8 @@ pub struct i64_b(i64);
 
 use std::fmt::{Debug, Display, Error as FmtError, Formatter};
 
-use {Bytes, Decodable, EncodableSized, DecodeError};
+use decode::{Decodable, DecodeError, ReadBuffer};
+use encode::EncodableSized;
 
 macro_rules! impl_prim_endian {
     ($t: ty, $t_exp: expr, $inner_t: ty, $size: expr, $en_s: expr, $to_en: ident, $from_en: path) => {
@@ -42,11 +43,8 @@ macro_rules! impl_prim_endian {
         }
 
         impl Decodable for $t {
-            fn decode(bytes: &mut Bytes) -> Result<$t, DecodeError> {
-                let mut buf: [u8; $size] = [0; $size];
-                bytes.read_bytes(&mut buf)?;
-                let raw_num = unsafe { *(&buf as *const _ as *const $inner_t) };
-                Ok($t_exp(raw_num))
+            fn decode<R: ReadBuffer>(buf: &mut R) -> Result<$t, DecodeError> {
+                Ok($t_exp(unsafe { *(buf.read_bytes($size)? as *const _ as *const $inner_t) }))
             }
         }
 
@@ -89,10 +87,8 @@ impl EncodableSized for u8 {
 }
 
 impl Decodable for u8 {
-    fn decode(bytes: &mut Bytes) -> Result<u8, DecodeError> {
-        let mut buf = [0];
-        bytes.read_bytes(&mut buf)?;
-        Ok(buf[0])
+    fn decode<R: ReadBuffer>(buf: &mut R) -> Result<u8, DecodeError> {
+        Ok(buf.read_bytes(1)?[0])
     }
 }
 
@@ -106,7 +102,7 @@ impl EncodableSized for i8 {
 }
 
 impl Decodable for i8 {
-    fn decode(bytes: &mut Bytes) -> Result<i8, DecodeError> {
-        Ok(bytes.read::<u8>()? as i8)
+    fn decode<R: ReadBuffer>(buf: &mut R) -> Result<i8, DecodeError> {
+        Ok(buf.read::<u8>()? as i8)
     }
 }
