@@ -18,31 +18,19 @@ pub trait ReadBuffer: Sized {
     }
 }
 
-impl<'a> ReadBuffer for ::std::io::Cursor<&'a [u8]> {
-    fn read_bytes(&mut self, size: usize) -> Result<&[u8], DecodeError> {
-        let start_pos = self.position() as usize; // Should I check here?
-        let buf = &self.get_ref()[start_pos..];
-
-        if buf.len() < size {
-            return Err(DecodeError::ShortBuffer);
-        }
-
-        self.set_position((start_pos + size) as u64);
-        Ok(&buf[..size])
-    }
-}
-
-impl ReadBuffer for ::std::io::Cursor<Vec<u8>> {
+impl<B> ReadBuffer for ::std::io::Cursor<B>
+where
+    B: AsRef<[u8]>,
+{
     fn read_bytes(&mut self, size: usize) -> Result<&[u8], DecodeError> {
         let start_pos = self.position() as usize; // Should I check here?
 
-        if self.get_ref().len() < start_pos + size {
+        if self.get_ref().as_ref().len() < start_pos + size {
             return Err(DecodeError::ShortBuffer);
         }
-
         self.set_position((start_pos + size) as u64);
 
-        let buf = &self.get_ref().as_slice()[start_pos..];
+        let buf = &self.get_ref().as_ref()[start_pos..];
 
         Ok(&buf[..size])
     }
