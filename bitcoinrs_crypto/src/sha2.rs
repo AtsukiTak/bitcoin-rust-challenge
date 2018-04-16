@@ -35,10 +35,10 @@ fn get_padded_bytes(msg: &[u8]) -> Vec<u8> {
 
     // Prepare buffer
     let mut bytes = Vec::with_capacity(padded_size);
-    bytes.write_bytes(msg).unwrap();
-    bytes.write(0b_1000_0000_u8).unwrap();
+    bytes.write_bytes(msg);
+    bytes.write(0b_1000_0000_u8);
     write_zeros(&mut bytes, size_zero_padding);
-    bytes.write(u64_b::new(msg.len() as u64 * 8)).unwrap(); // Length in bits.
+    bytes.write(u64_b::new(msg.len() as u64 * 8)); // Length in bits.
 
     bytes
 }

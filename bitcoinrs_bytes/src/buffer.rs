@@ -1,4 +1,4 @@
-use encode::{EncodeError, WriteBuffer};
+use encode::WriteBuffer;
 
 pub struct Buffer {
     bytes: Vec<u8>,
@@ -32,9 +32,12 @@ impl Buffer {
 }
 
 impl WriteBuffer for Buffer {
-    fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), EncodeError> {
+    fn write_bytes(&mut self, bytes: &[u8]) {
         self.bytes.extend_from_slice(bytes);
-        Ok(())
+    }
+
+    fn has_buffer(&self, _size: usize) -> bool {
+        true
     }
 }
 

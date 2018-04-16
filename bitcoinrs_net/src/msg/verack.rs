@@ -1,4 +1,4 @@
-use bitcoinrs_bytes::encode::{Encodable, EncodeError, WriteBuffer};
+use bitcoinrs_bytes::encode::{Encodable, WriteBuffer};
 use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 
 use msg::MsgPayload;
@@ -18,9 +18,7 @@ impl Encodable for VerackMsgPayload {
     }
 
     /// Nothing to encode.
-    fn encode<W: WriteBuffer>(&self, _buf: &mut W) -> Result<(), EncodeError> {
-        Ok(())
-    }
+    fn encode<W: WriteBuffer>(&self, _buf: &mut W) {}
 }
 
 impl Decodable for VerackMsgPayload {

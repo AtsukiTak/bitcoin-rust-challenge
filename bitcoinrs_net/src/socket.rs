@@ -36,7 +36,6 @@ pub struct Socket {
 
 impl Socket {
     pub fn new(socket: TcpStream) -> Result<Socket, IoError> {
-        socket.set_nonblocking(true)?;
         Socket {
             socket: socket,
             read_buf: Buffer::new(),
@@ -49,12 +48,18 @@ impl Socket {
 
     fn read_to_buffer(&mut self) -> Result<(), IoError> {
         const TMP_BUF_SIZE: usize = 128;
-
         let mut tmp_buf = [0; TMP_BUF_SIZE];
-        let n = self.socket.read(&mut tmp_buf)?
-        self.read_buf.write(&tmp_buf[..n]);
+
+        loop {
+            let n = self.socket.read(&mut tmp_buf)?;
+            self.read_buf.write_bytes(&tmp_buf[..n]);
+            if n < TMP_BUF_SIZE {
+                break;
+            }
+        }
     }
 
-    fn recv_msg_sync<P: Payload>(&self) -> Result<Msg<P>, IoError> {
+    fn recv_msg_sync<P: Payload>(&mut self) -> Result<Msg<P>, IoError> {
+        self.read_to_buffer()?;
     }
 }

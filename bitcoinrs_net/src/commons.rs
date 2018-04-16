@@ -3,9 +3,10 @@
 
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::io::Cursor;
 
 use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
-use bitcoinrs_bytes::encode::{Encodable, EncodableSized, EncodeError, WriteBuffer};
+use bitcoinrs_bytes::encode::{Encodable, EncodableSized, WriteBuffer};
 use bitcoinrs_bytes::endian::{u16_b, u16_l, u32_l, u64_l};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -52,18 +53,15 @@ impl Encodable for CompactSize {
         }
     }
 
-    fn encode<W: WriteBuffer>(&self, buf: &mut W) -> Result<(), EncodeError> {
+    fn encode<W: WriteBuffer>(&self, buf: &mut W) {
         if self.0 < 0xFD {
             buf.write(self.0 as u8)
         } else if self.0 <= 0xFFFF {
-            buf.write(0xFD_u8)?;
-            buf.write(u16_l::new(self.0 as u16))
+            buf.write(0xFD_u8.chain(&u16_l::new(self.0 as u16)))
         } else if self.0 <= 0xFFFF_FFFF {
-            buf.write(0xFE_u8)?;
-            buf.write(u32_l::new(self.0 as u32))
+            buf.write(0xFE_u8.chain(&u32_l::new(self.0 as u32)))
         } else {
-            buf.write(0xFF_u8)?;
-            buf.write(u64_l::new(self.0))
+            buf.write(0xFF_u8.chain(&u64_l::new(self.0)))
         }
     }
 }
@@ -91,9 +89,8 @@ impl<'a> Encodable for &'a VarStr {
         CompactSize(self.0.len() as u64).length() + self.0.len()
     }
 
-    fn encode<W: WriteBuffer>(&self, buf: &mut W) -> Result<(), EncodeError> {
-        buf.write(CompactSize(self.0.len() as u64))?;
-        buf.write_bytes(self.0.as_bytes())
+    fn encode<W: WriteBuffer>(&self, buf: &mut W) {
+        buf.write(CompactSize(self.0.len() as u64).chain(&self.0.as_bytes()))
     }
 }
 
@@ -172,18 +169,18 @@ impl EncodableSized for NetAddr {
     const SIZE: usize = 30;
     type Array = [u8; 30];
 
+    #[allow(unused_must_use)]
     fn bytes(&self) -> [u8; 30] {
-        let mut buf = [0; 30];
+        let mut bytes = [0; 30];
+        {
+            let mut buf = Cursor::new(&mut bytes[..]);
 
-        // Write time field
-        (&mut buf[0..4]).copy_from_slice(&self.ts.bytes());
-
-        // Write services field
-        (&mut buf[4..12]).copy_from_slice(&self.services.bytes());
-
-        write_addr(self.addr, &mut buf[12..30]);
-
-        buf
+            // never error
+            buf.write(self.ts);
+            buf.write(self.services);
+            write_addr(self.addr, &mut buf);
+        }
+        bytes
     }
 }
 
@@ -191,8 +188,7 @@ impl Decodable for NetAddr {
     fn decode<R: ReadBuffer>(buf: &mut R) -> Result<NetAddr, DecodeError> {
         let ts = buf.read::<Timestamp>()?;
         let services = buf.read::<Services>()?;
-        let ipv6 =
-            Ipv6Addr::from(unsafe { *(&buf.read_bytes(16)? as *const _ as *const [u8; 16]) });
+        let ipv6 = Ipv6Addr::from(buf.read::<[u8; 16]>()?);
         let port = buf.read::<u16_l>()?.value();
         let socket_addr = SocketAddr::new(IpAddr::V6(ipv6), port);
         Ok(NetAddr {
@@ -222,11 +218,15 @@ impl EncodableSized for NetAddrForVersionMsg {
     const SIZE: usize = 26;
     type Array = [u8; 26];
 
+    #[allow(unused_must_use)]
     fn bytes(&self) -> [u8; 26] {
-        let mut buf = [0; 26];
-        (&mut buf[0..8]).copy_from_slice(&self.services.bytes());
-        write_addr(self.addr, &mut buf[8..26]);
-        buf
+        let mut bytes = [0; 26];
+        {
+            let mut buf = Cursor::new(&mut bytes[..]);
+            buf.write(self.services);
+            write_addr(self.addr, &mut buf);
+        }
+        bytes
     }
 }
 
@@ -243,12 +243,13 @@ impl Decodable for NetAddrForVersionMsg {
     }
 }
 
-fn write_addr(addr: SocketAddr, buf: &mut [u8]) {
+#[allow(unused_must_use)]
+fn write_addr<W: WriteBuffer>(addr: SocketAddr, buf: &mut W) {
     let ipv6 = match addr.ip() {
         IpAddr::V4(v4) => v4.to_ipv6_mapped(),
         IpAddr::V6(v6) => v6,
     };
-    (&mut buf[0..16]).copy_from_slice(&ipv6.octets());
-
-    (&mut buf[16..18]).copy_from_slice(&u16_b::new(addr.port()).bytes());
+    // never error
+    buf.write(&ipv6.octets()[..]);
+    buf.write(u16_b::new(addr.port()));
 }

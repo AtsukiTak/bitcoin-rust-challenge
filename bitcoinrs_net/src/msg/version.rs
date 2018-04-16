@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
-use bitcoinrs_bytes::encode::{Encodable, EncodeError, WriteBuffer};
+use bitcoinrs_bytes::encode::{Encodable, WriteBuffer};
 use bitcoinrs_bytes::endian::{i32_l, u64_l};
 
 use commons::{NetAddrForVersionMsg, Service, Services, Timestamp, VarStr};
@@ -98,16 +98,16 @@ impl Encodable for VersionMsgPayload {
         + 1 // relay
     }
 
-    fn encode<W: WriteBuffer>(&self, buf: &mut W) -> Result<(), EncodeError>{
-        buf.write(i32_l::new(self.version))?;
-        buf.write(self.services)?;
-        buf.write(self.timestamp)?;
-        buf.write(NetAddrForVersionMsg::new(self.services, self.remote_addr))?;
-        buf.write(NetAddrForVersionMsg::new(self.services, self.local_addr))?;
-        buf.write(u64_l::new(self.nonce))?;
-        buf.write(&self.user_agent)?;
-        buf.write(i32_l::new(self.start_height))?;
-        buf.write(self.relay as u8)
+    fn encode<W: WriteBuffer>(&self, buf: &mut W) {
+        buf.write(i32_l::new(self.version));
+        buf.write(self.services);
+        buf.write(self.timestamp);
+        buf.write(NetAddrForVersionMsg::new(self.services, self.remote_addr));
+        buf.write(NetAddrForVersionMsg::new(self.services, self.local_addr));
+        buf.write(u64_l::new(self.nonce));
+        buf.write(&self.user_agent);
+        buf.write(i32_l::new(self.start_height));
+        buf.write(self.relay as u8);
     }
 }
 

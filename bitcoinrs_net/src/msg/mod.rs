@@ -4,7 +4,7 @@ pub mod verack;
 pub use self::version::VersionMsgPayload;
 pub use self::verack::VerackMsgPayload;
 
-use bitcoinrs_bytes::encode::{Encodable, EncodeError, WriteBuffer};
+use bitcoinrs_bytes::encode::{Encodable, WriteBuffer};
 use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 use bitcoinrs_bytes::endian::u32_l;
 use bitcoinrs_crypto::sha256;
@@ -46,25 +46,26 @@ impl<P: MsgPayload> Encodable for Msg<P> {
         24 + self.payload.length()
     }
 
-    fn encode<W: WriteBuffer>(&self, buf: &mut W) -> Result<(), EncodeError> {
+    #[allow(unused_must_use)]
+    fn encode<W: WriteBuffer>(&self, buf: &mut W) {
         // Write magic valud.
-        buf.write(u32_l::new(self.net_type.magic_num()))?;
+        buf.write(u32_l::new(self.net_type.magic_num()));
 
         // Write NULL padded command string
-        buf.write_bytes(&P::COMMAND_BYTES)?;
+        buf.write_bytes(&P::COMMAND_BYTES);
 
         // Write length of payload in bytes
-        buf.write(u32_l::new(self.payload.length() as u32))?;
+        buf.write(u32_l::new(self.payload.length() as u32));
 
         // Encode payload into bytes.
         let payload = self.payload.to_vec();
 
         // Compute and write checksum
         let hash = sha256(&sha256(payload.as_slice()));
-        buf.write_bytes(&hash[0..4])?;
+        buf.write_bytes(&hash[0..4]);
 
         // Write payload
-        buf.write_bytes(&payload.as_slice())
+        buf.write_bytes(&payload.as_slice());
     }
 }
 
