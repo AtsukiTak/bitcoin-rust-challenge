@@ -18,7 +18,7 @@ pub trait ReadBuffer: Sized {
     }
 }
 
-impl<B> ReadBuffer for ::std::io::Cursor<B>
+impl<'a, B> ReadBuffer for ::std::io::Cursor<&'a B>
 where
     B: AsRef<[u8]>,
 {
@@ -31,6 +31,22 @@ where
         self.set_position((start_pos + size) as u64);
 
         let buf = &self.get_ref().as_ref()[start_pos..];
+
+        Ok(&buf[..size])
+    }
+}
+
+impl<'a> ReadBuffer for ::std::io::Cursor<&'a [u8]>
+{
+    fn read_bytes(&mut self, size: usize) -> Result<&[u8], DecodeError> {
+        let start_pos = self.position() as usize; // Should I check here?
+
+        if self.get_ref().len() < start_pos + size {
+            return Err(DecodeError::ShortBuffer);
+        }
+        self.set_position((start_pos + size) as u64);
+
+        let buf = &self.get_ref()[start_pos..];
 
         Ok(&buf[..size])
     }
