@@ -55,13 +55,16 @@ impl Encodable for CompactSize {
 
     fn encode<W: WriteBuffer>(&self, buf: &mut W) {
         if self.0 < 0xFD {
-            buf.write(self.0 as u8)
+            buf.write(self.0 as u8);
         } else if self.0 <= 0xFFFF {
-            buf.write(0xFD_u8.chain(&u16_l::new(self.0 as u16)))
+            buf.write(0xFD_u8);
+            buf.write(u16_l::new(self.0 as u16));
         } else if self.0 <= 0xFFFF_FFFF {
-            buf.write(0xFE_u8.chain(&u32_l::new(self.0 as u32)))
+            buf.write(0xFE_u8);
+            buf.write(u32_l::new(self.0 as u32));
         } else {
-            buf.write(0xFF_u8.chain(&u64_l::new(self.0)))
+            buf.write(0xFF_u8);
+            buf.write(u64_l::new(self.0));
         }
     }
 }

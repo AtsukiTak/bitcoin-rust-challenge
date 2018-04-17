@@ -5,6 +5,7 @@ pub trait Decodable {
         Self: Sized;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DecodeError {
     ShortBuffer,
     InvalidBytes,

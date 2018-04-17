@@ -56,14 +56,14 @@ mod tests {
         let mut buffer = Buffer::new();
         let bytes = [1, 2, 3, 4, 5];
         let zeros_64 = [0; 64];
-        buffer.write_bytes(&bytes[..]).unwrap();
+        buffer.write_bytes(&bytes[..]);
         assert!(&buffer.as_ref()[0..5] == &bytes[0..5]);
 
         buffer.drop_front(3);
         assert!(&buffer.as_ref()[0..2] == &bytes[3..5]);
 
-        buffer.write_bytes(&zeros_64[..]).unwrap();
-        buffer.write_bytes(&bytes[..]).unwrap();
+        buffer.write_bytes(&zeros_64[..]);
+        buffer.write_bytes(&bytes[..]);
         buffer.drop_front(64);
         assert_eq!(&buffer.as_ref()[0..5], &[0, 0, 1, 2, 3][..]);
     }
