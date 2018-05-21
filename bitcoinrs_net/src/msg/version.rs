@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::net::Ipv6Addr;
 
 use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 use bitcoinrs_bytes::encode::{Encodable, WriteBuffer};
@@ -16,8 +16,10 @@ pub struct VersionMsgPayload {
     version: i32,
     services: Services,
     timestamp: Timestamp,
-    remote_addr: SocketAddr,
-    local_addr: SocketAddr,
+    remote_ip: Ipv6Addr,
+    remote_port: u16,
+    local_ip: Ipv6Addr,
+    local_port: u16,
     nonce: u64,
     user_agent: VarStr,
     start_height: i32,
@@ -31,17 +33,24 @@ impl VersionMsgPayload {
     /// # Default fields
     /// - version : 70015
     /// - services : NODE_NETWORK
+    /// - timestamp : [current timestamp]
+    /// - remote_ip : ::ffff:127:0.0.1
+    /// - remote_port : 8333
+    /// - local_ip : ::ffff:127:0:0:1
+    /// - local_port : 8333
     /// - nonce : 0
     /// - user_agent : bitcoinrs
     /// - start_height : 0
     /// - relay : false
-    pub fn new(remote_addr: SocketAddr, local_addr: SocketAddr) -> VersionMsgPayload {
+    pub fn new() -> VersionMsgPayload {
         VersionMsgPayload {
             version: DEFAULT_VERSION,
             services: Services::new(&[Service::Network]),
             timestamp: Timestamp::now(),
-            remote_addr: remote_addr,
-            local_addr: local_addr,
+            remote_ip: Ipv6Addr::new(0, 0, 0, 0xffff, 127, 0, 0, 1),
+            remote_port: 8331,
+            local_ip: Ipv6Addr::new(0, 0, 0, 0xffff, 127, 0, 0, 1),
+            local_port: 8331,
             nonce: 0, // If this value is 0, nonce field is ignored.
             user_agent: VarStr(DEFAULT_USER_AGENT.into()),
             start_height: 0,
@@ -102,8 +111,16 @@ impl Encodable for VersionMsgPayload {
         buf.write(i32_l::new(self.version));
         buf.write(self.services);
         buf.write(self.timestamp);
-        buf.write(NetAddrForVersionMsg::new(self.services, self.remote_addr));
-        buf.write(NetAddrForVersionMsg::new(self.services, self.local_addr));
+        buf.write(NetAddrForVersionMsg::new(
+            self.services,
+            self.remote_ip,
+            self.remote_port,
+        ));
+        buf.write(NetAddrForVersionMsg::new(
+            self.services,
+            self.local_ip,
+            self.local_port,
+        ));
         buf.write(u64_l::new(self.nonce));
         buf.write(&self.user_agent);
         buf.write(i32_l::new(self.start_height));
@@ -129,8 +146,10 @@ impl Decodable for VersionMsgPayload {
             version: version,
             services: services,
             timestamp: timestamp,
-            remote_addr: remote_addr.addr,
-            local_addr: local_addr.addr,
+            remote_ip: remote_addr.ip,
+            remote_port: remote_addr.port,
+            local_ip: local_addr.ip,
+            local_port: local_addr.port,
             nonce: nonce,
             user_agent: user_agent,
             start_height: start_height,

@@ -3,7 +3,6 @@ extern crate bitcoinrs_crypto;
 
 pub mod commons;
 pub mod msg;
-pub mod socket;
 
 const MAGIC_MAIN: u32 = 0xd9b4bef9;
 const MAGIC_TEST3: u32 = 0x0709110b;

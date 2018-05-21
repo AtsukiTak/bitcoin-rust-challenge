@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+use std::net::Ipv6Addr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::io::Cursor;
 
@@ -155,15 +155,17 @@ impl Decodable for Services {
 pub struct NetAddr {
     ts: Timestamp, // Not present in version message.
     services: Services,
-    addr: SocketAddr,
+    ip: Ipv6Addr,
+    port: u16,
 }
 
 impl NetAddr {
-    pub fn new(ts: Timestamp, services: Services, addr: SocketAddr) -> NetAddr {
+    pub fn new(ts: Timestamp, services: Services, ip: Ipv6Addr, port: u16) -> NetAddr {
         NetAddr {
             ts: ts,
             services: services,
-            addr: addr,
+            ip: ip,
+            port: port,
         }
     }
 }
@@ -181,7 +183,8 @@ impl EncodableSized for NetAddr {
             // never error
             buf.write(self.ts);
             buf.write(self.services);
-            write_addr(self.addr, &mut buf);
+            buf.write(&self.ip.octets()[..]);
+            buf.write(u16_b::new(self.port));
         }
         bytes
     }
@@ -193,11 +196,11 @@ impl Decodable for NetAddr {
         let services = buf.read::<Services>()?;
         let ipv6 = Ipv6Addr::from(buf.read::<[u8; 16]>()?);
         let port = buf.read::<u16_l>()?.value();
-        let socket_addr = SocketAddr::new(IpAddr::V6(ipv6), port);
         Ok(NetAddr {
             ts: ts,
             services: services,
-            addr: socket_addr,
+            ip: ipv6,
+            port: port,
         })
     }
 }
@@ -205,14 +208,16 @@ impl Decodable for NetAddr {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NetAddrForVersionMsg {
     pub services: Services,
-    pub addr: SocketAddr,
+    pub ip: Ipv6Addr,
+    pub port: u16,
 }
 
 impl NetAddrForVersionMsg {
-    pub fn new(services: Services, addr: SocketAddr) -> NetAddrForVersionMsg {
+    pub fn new(services: Services, ip: Ipv6Addr, port: u16) -> NetAddrForVersionMsg {
         NetAddrForVersionMsg {
             services: services,
-            addr: addr,
+            ip: ip,
+            port: port,
         }
     }
 }
@@ -227,7 +232,8 @@ impl EncodableSized for NetAddrForVersionMsg {
         {
             let mut buf = Cursor::new(&mut bytes[..]);
             buf.write(self.services);
-            write_addr(self.addr, &mut buf);
+            buf.write(&self.ip.octets()[..]);
+            buf.write(u16_b::new(self.port));
         }
         bytes
     }
@@ -238,21 +244,10 @@ impl Decodable for NetAddrForVersionMsg {
         let services = buf.read::<Services>()?;
         let ipv6 = Ipv6Addr::from(buf.read::<[u8; 16]>()?);
         let port = buf.read::<u16_l>()?.value();
-        let socket_addr = SocketAddr::new(IpAddr::V6(ipv6), port);
         Ok(NetAddrForVersionMsg {
             services: services,
-            addr: socket_addr,
+            ip: ipv6,
+            port: port,
         })
     }
-}
-
-#[allow(unused_must_use)]
-fn write_addr<W: WriteBuffer>(addr: SocketAddr, buf: &mut W) {
-    let ipv6 = match addr.ip() {
-        IpAddr::V4(v4) => v4.to_ipv6_mapped(),
-        IpAddr::V6(v6) => v6,
-    };
-    // never error
-    buf.write(&ipv6.octets()[..]);
-    buf.write(u16_b::new(addr.port()));
 }
