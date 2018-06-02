@@ -1,3 +1,4 @@
+pub mod common_types;
 pub mod version;
 pub mod verack;
 
@@ -9,7 +10,7 @@ use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 use bitcoinrs_bytes::endian::u32_l;
 use bitcoinrs_crypto::sha256;
 
-use NetworkType;
+use codec::NetworkType;
 
 pub type VersionMsg = Msg<VersionMsgPayload>;
 pub type VerackMsg = Msg<VerackMsgPayload>;

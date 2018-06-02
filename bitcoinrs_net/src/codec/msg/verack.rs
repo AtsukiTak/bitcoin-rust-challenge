@@ -1,7 +1,7 @@
 use bitcoinrs_bytes::encode::{Encodable, WriteBuffer};
 use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 
-use msg::MsgPayload;
+use super::MsgPayload;
 
 #[derive(Debug, Clone, Copy)]
 pub struct VerackMsgPayload(());

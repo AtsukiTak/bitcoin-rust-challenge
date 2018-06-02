@@ -4,8 +4,8 @@ use bitcoinrs_bytes::decode::{Decodable, DecodeError, ReadBuffer};
 use bitcoinrs_bytes::encode::{Encodable, WriteBuffer};
 use bitcoinrs_bytes::endian::{i32_l, u64_l};
 
-use commons::{NetAddrForVersionMsg, Service, Services, Timestamp, VarStr};
-use msg::MsgPayload;
+use super::common_types::{NetAddrForVersionMsg, Service, Services, Timestamp, VarStr};
+use super::MsgPayload;
 
 const DEFAULT_USER_AGENT: &str = "bitcoinrs";
 
